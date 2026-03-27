@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Kaseya GTM Sales Enablement Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+
+:root{
+  --navy:#0D1B4B; --purple:#6B3FA0; --teal:#00B4D8; --gold:#F4C430;
+  --red:#E74C3C; --yellow:#F39C12; --green:#27AE60;
+  --bg:#F0F2FA; --card:#fff; --border:#D8DCF0;
+  --text:#1a1a2e; --muted:#6b7280; --sw:224px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;font-size:14px;}
+
+/* ── SIDEBAR ── */
+#sidebar{width:var(--sw);min-width:var(--sw);background:linear-gradient(180deg,#0D1B4B 0%,#1a2a6c 100%);position:fixed;top:0;left:0;height:100vh;display:flex;flex-direction:column;z-index:100;overflow-y:auto;}
+#sb-brand{padding:20px 16px 16px;border-bottom:1px solid rgba(255,255,255,.1);}
+#sb-brand .t{color:#fff;font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+#sb-brand .s{color:var(--teal);font-size:11px;margin-top:2px;}
+#sidebar nav{padding:10px 0;flex:1;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;color:rgba(255,255,255,.65);font-size:13px;transition:all .15s;border-left:3px solid transparent;user-select:none;}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff;}
+.nav-item.active{background:rgba(0,180,216,.15);color:var(--teal);border-left-color:var(--teal);font-weight:600;}
+.nav-item .ni{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
+#sb-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.35);font-size:11px;display:flex;align-items:center;justify-content:space-between;}
+#auto-save-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px;}
+
+/* ── MAIN ── */
+#main{margin-left:var(--sw);flex:1;min-height:100vh;display:flex;flex-direction:column;}
+#topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:90;flex-shrink:0;}
+#topbar h1{font-size:17px;font-weight:700;color:var(--navy);}
+#topbar-right{display:flex;align-items:center;gap:10px;}
+#content{padding:24px 28px;flex:1;}
+.tab-pane{display:none;}.tab-pane.active{display:block;}
+
+/* ── CARDS ── */
+.card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:20px;margin-bottom:20px;}
+.card-title{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.card-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.card-title-row .card-title{margin-bottom:0;}
+
+/* ── STAT CARDS ── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px;}
+.stat-card{background:var(--card);border-radius:12px;padding:18px 20px;border:1px solid var(--border);border-left:4px solid var(--teal);}
+.stat-card.gold{border-left-color:var(--gold);}
+.stat-card.purple{border-left-color:var(--purple);}
+.stat-card.green{border-left-color:var(--green);}
+.stat-card.red{border-left-color:var(--red);}
+.stat-card.navy{border-left-color:var(--navy);}
+.stat-val{font-size:28px;font-weight:800;color:var(--navy);}
+.stat-lbl{font-size:12px;color:var(--muted);margin-top:3px;}
+
+/* ── TABLES ── */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:var(--navy);color:#fff;text-align:left;padding:10px 14px;font-size:12px;font-weight:600;letter-spacing:.3px;white-space:nowrap;}
+td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:#f7f8fd;}
+tbody tr.clickable{cursor:pointer;}
+tr.sub-row td{background:#f4f6ff;border-bottom:1px solid #e8ecff;}
+
+/* ── BADGES ── */
+.badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-red{background:#fdecea;color:var(--red);}
+.badge-yellow{background:#fef9e7;color:#b45309;}
+.badge-green{background:#eafaf1;color:#166534;}
+.badge-gray{background:#f3f4f6;color:var(--muted);}
+.badge-teal{background:#e0f7fc;color:#0369a1;}
+.badge-purple{background:#f3eeff;color:var(--purple);}
+.badge-navy{background:#e8ebf5;color:var(--navy);}
+.badge-gold{background:#fef9e7;color:#854d0e;}
+
+/* ── SCORE BARS ── */
+.bar-wrap{display:flex;align-items:center;gap:8px;min-width:120px;}
+.bar-bg{flex:1;background:#e9ecef;border-radius:20px;height:8px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:20px;transition:width .4s;}
+.bar-pct{font-size:12px;font-weight:700;min-width:34px;text-align:right;}
+
+/* ── BUTTONS ── */
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.btn:hover{opacity:.85;}
+.btn-teal{background:var(--teal);color:#fff;}
+.btn-navy{background:var(--navy);color:#fff;}
+.btn-purple{background:var(--purple);color:#fff;}
+.btn-gold{background:var(--gold);color:var(--navy);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn-xs{padding:3px 8px;font-size:11px;}
+.btn-icon{background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);font-size:14px;border-radius:6px;}
+.btn-icon:hover{background:var(--bg);color:var(--navy);}
+
+/* ── FORMS ── */
+.filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+input[type="text"],input[type="date"],input[type="number"],input[type="email"],select,textarea{
+  background:#fff;border:1px solid var(--border);border-radius:8px;padding:7px 11px;
+  font-size:13px;color:var(--text);font-family:inherit;outline:none;transition:border-color .15s;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--teal);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-field{display:flex;flex-direction:column;gap:4px;}
+.form-field.full{grid-column:1/-1;}
+.form-field label{font-size:12px;font-weight:600;color:var(--muted);}
+.checkbox-list{display:flex;flex-wrap:wrap;gap:8px;padding:6px 0;}
+.checkbox-list label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;white-space:nowrap;}
+.checkbox-list input[type="checkbox"]{width:auto;cursor:pointer;accent-color:var(--teal);}
+.pillar-check-list{display:grid;grid-template-columns:1fr;gap:4px;padding:6px 0;}
+.pillar-check-list label{display:flex;align-items:flex-start;gap:8px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;line-height:1.4;}
+.pillar-check-list input[type="checkbox"]{width:auto;cursor:pointer;accent-color:var(--teal);margin-top:2px;flex-shrink:0;}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:28px;width:640px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:18px;color:var(--navy);}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+.close-btn{position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1;}
+
+/* ── ACCORDION ── */
+.accordion-item{border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden;}
+.acc-header{padding:12px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:13px;background:#f8f9fe;user-select:none;transition:background .15s;}
+.acc-header:hover{background:#eef0fb;}
+.acc-header.open{background:var(--navy);color:#fff;}
+.acc-header.open .acc-icon{color:#fff;}
+.acc-body{display:none;padding:14px 16px;border-top:1px solid var(--border);}
+.acc-body.open{display:block;}
+
+/* ── PILLS ── */
+.pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.pill{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--muted);transition:all .15s;}
+.pill.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+/* ── UPLOAD WIZARD ── */
+.wizard-steps{display:flex;margin-bottom:24px;}
+.wizard-step{flex:1;text-align:center;padding:10px 4px;font-size:11px;font-weight:600;color:var(--muted);border-bottom:3px solid var(--border);transition:all .2s;}
+.wizard-step.active{color:var(--teal);border-bottom-color:var(--teal);}
+.wizard-step.done{color:var(--green);border-bottom-color:var(--green);}
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;background:#fafbff;}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--teal);background:#f0fbff;}
+
+/* ── MISC ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.chart-wrap{position:relative;}
+.section-sub{font-size:12px;color:var(--muted);margin-bottom:14px;}
+.quick-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px;}
+.quick-link{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:12px;}
+.quick-link:hover{border-color:var(--teal);transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.08);}
+.quick-link .ql-icon{font-size:24px;}
+.quick-link .ql-text{font-size:12px;font-weight:700;color:var(--navy);}
+.editable-cell{display:flex;align-items:center;gap:6px;}
+#toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;display:none;box-shadow:0 4px 20px rgba(0,0,0,.2);max-width:360px;}
+.save-indicator{font-size:11px;color:rgba(255,255,255,.4);}
+.catalog-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:20px;}
+.catalog-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:8px;}
+.catalog-card:hover{border-color:var(--teal);box-shadow:0 2px 12px rgba(0,180,216,.1);}
+.tracker-desc-area{padding:12px 16px;background:#f8f9fe;border-top:1px solid var(--border);}
+.step-item{display:flex;gap:14px;margin-bottom:16px;align-items:flex-start;}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.export-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+.export-card{border:1px solid var(--border);border-radius:10px;padding:16px;}
+.export-card h4{font-size:13px;font-weight:700;margin-bottom:4px;}
+.export-card p{font-size:12px;color:var(--muted);}
+code{background:#f0f2fa;padding:2px 6px;border-radius:4px;font-size:12px;font-family:monospace;}
+@media(max-width:900px){.two-col,.three-col{grid-template-columns:1fr;}}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+</style></head><body>
+<div id="sidebar">
+  <div id="sb-brand"><div class="t">Kaseya GTM</div><div class="s">Sales Enablement Dashboard</div></div>
+  <nav id="nav">
+    <div class="nav-item active" data-tab="home"><span class="ni">🏠</span> Home</div>
+    <div class="nav-item" data-tab="instructions"><span class="ni">📖</span> Instructions</div>
+    <div class="nav-item" data-tab="competency"><span class="ni">📋</span> Competency Library</div>
+    <div class="nav-item" data-tab="gap"><span class="ni">📊</span> Gap Analysis</div>
+    <div class="nav-item" data-tab="trainees"><span class="ni">👤</span> Trainee Scores</div>
+    <div class="nav-item" data-tab="questions"><span class="ni">🔍</span> Question Breakdown</div>
+    <div class="nav-item" data-tab="trends"><span class="ni">📈</span> Trends</div>
+    <div class="nav-item" data-tab="catalog"><span class="ni">🎓</span> Training Catalogue</div>
+    <div class="nav-item" data-tab="qbank"><span class="ni">📚</span> Question Bank</div>
+    <div class="nav-item" data-tab="tracker"><span class="ni">🛠</span> Content Tracker</div>
+    <div class="nav-item" data-tab="export"><span class="ni">📤</span> Export</div>
+    <div class="nav-item" data-tab="upload"><span class="ni">⬆</span> Upload Data</div>
+  </nav>
+  <div id="sb-footer"><div><span id="auto-save-dot"></span><span class="save-indicator" id="save-label">Auto-save on</span></div><span style="color:rgba(255,255,255,.3);font-size:10px;">v7.0</span></div>
+</div>
+<div id="main">
+  <div id="topbar"><h1 id="topbar-title">🏠 Home</h1><div id="topbar-right">
+    <button class="btn btn-ghost btn-sm" onclick="switchTab('upload')">⬆ Upload</button>
+    <button class="btn btn-teal btn-sm" onclick="manualRefresh()">🔄 Refresh</button>
+  </div></div>
+  <div id="content">
+    <div class="tab-pane active" id="tab-home"></div>
+    <div class="tab-pane" id="tab-instructions"></div>
+    <div class="tab-pane" id="tab-competency"></div>
+    <div class="tab-pane" id="tab-gap"></div>
+    <div class="tab-pane" id="tab-trainees"></div>
+    <div class="tab-pane" id="tab-questions"></div>
+    <div class="tab-pane" id="tab-trends"></div>
+    <div class="tab-pane" id="tab-catalog"></div>
+    <div class="tab-pane" id="tab-qbank"></div>
+    <div class="tab-pane" id="tab-tracker"></div>
+    <div class="tab-pane" id="tab-export"></div>
+    <div class="tab-pane" id="tab-upload"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="catalog-modal-overlay">
+  <div class="modal" id="catalog-modal-body"></div>
+</div>
+<div class="modal-overlay" id="qbank-modal-overlay">
+  <div class="modal" id="qbank-modal-body"></div>
+</div>
+<div class="modal-overlay" id="tracker-modal-overlay">
+  <div class="modal" id="tracker-modal-body"></div>
+</div>
+<div id="toast"></div>
+<script>
+
+// ════════════════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════════════════
+const PILLARS=[
+  "Customer Service & Communication","Collaboration",
+  "Industry / Solutions Knowledge","Business Acumen & Negotiation",
+  "Account Planning & Discovery","Problem Solving",
+  "Internal Systems Navigation + Forecast Hygiene"
+];
+const ROLES=["AM","NCA","TAM","RS","Specialist","BCDR","SE"];
+const KSABA=["Knowledge","Skills","Attitudes","Behaviors","Abilities"];
+const LS_KEY="gtm_dashboard_v7";
+
+// ════════════════════════════════════════════════════════════
+// DEFAULT DATA
+// ════════════════════════════════════════════════════════════
+const DEFAULT_DATA={
+  TRAININGS:[
+    {
+      id:"t1",name:"Channel 101 \u2014 Bootcamp 2",type:"Bootcamp",
+      date:"2026-03-19",targetAudience:["AM","NCA"],targetSize:80,
+      respondents:{pre:17,post:7},
+      gapScores:{"Collaboration":55,"Industry / Solutions Knowledge":71,"Problem Solving":0,"Internal Systems Navigation + Forecast Hygiene":71},
+      preScores:{"Collaboration":47,"Industry / Solutions Knowledge":82,"Problem Solving":0},
+      postScores:{"Collaboration":64,"Industry / Solutions Knowledge":57,"Internal Systems Navigation + Forecast Hygiene":71},
+      recommendations:{
+        "Collaboration":"Assign cross-functional shadowing and team workshops.",
+        "Industry / Solutions Knowledge":"Complete K365 product deep-dive and battlecard review.",
+        "Problem Solving":"Enroll in Escalation Mastery; complete case study library.",
+        "Internal Systems Navigation + Forecast Hygiene":"Complete Salesforce Lightning fundamentals."
+      },
+      trainees:[
+        {name:"Alex Rivera",role:"AM",pre:72,post:81,session:"both",competencyScores:{pre:{"Collaboration":60,"Industry / Solutions Knowledge":80,"Problem Solving":55},post:{"Collaboration":75,"Industry / Solutions Knowledge":85,"Internal Systems Navigation + Forecast Hygiene":78}}},
+        {name:"Morgan Chen",role:"NCA",pre:58,post:null,session:"pre",competencyScores:{pre:{"Collaboration":45,"Industry / Solutions Knowledge":70,"Problem Solving":40},post:{}}},
+        {name:"Taylor Kim",role:"AM",pre:88,post:91,session:"both",competencyScores:{pre:{"Collaboration":85,"Industry / Solutions Knowledge":90,"Problem Solving":80},post:{"Collaboration":90,"Industry / Solutions Knowledge":95,"Internal Systems Navigation + Forecast Hygiene":88}}},
+        {name:"Jordan Patel",role:"NCA",pre:45,post:62,session:"both",competencyScores:{pre:{"Collaboration":38,"Industry / Solutions Knowledge":55,"Problem Solving":30},post:{"Collaboration":58,"Industry / Solutions Knowledge":65,"Internal Systems Navigation + Forecast Hygiene":60}}},
+        {name:"Casey Williams",role:"AM",pre:79,post:null,session:"pre",competencyScores:{pre:{"Collaboration":72,"Industry / Solutions Knowledge":85,"Problem Solving":68},post:{}}},
+        {name:"Riley Johnson",role:"AM",pre:55,post:70,session:"both",competencyScores:{pre:{"Collaboration":48,"Industry / Solutions Knowledge":62,"Problem Solving":44},post:{"Collaboration":65,"Industry / Solutions Knowledge":72,"Internal Systems Navigation + Forecast Hygiene":68}}},
+        {name:"Avery Martinez",role:"NCA",pre:91,post:94,session:"both",competencyScores:{pre:{"Collaboration":88,"Industry / Solutions Knowledge":95,"Problem Solving":85},post:{"Collaboration":92,"Industry / Solutions Knowledge":98,"Internal Systems Navigation + Forecast Hygiene":90}}},
+        {name:"Quinn Thompson",role:"AM",pre:63,post:null,session:"pre",competencyScores:{pre:{"Collaboration":55,"Industry / Solutions Knowledge":70,"Problem Solving":52},post:{}}},
+        {name:"Drew Harris",role:"NCA",pre:48,post:55,session:"both",competencyScores:{pre:{"Collaboration":40,"Industry / Solutions Knowledge":58,"Problem Solving":35},post:{"Collaboration":52,"Industry / Solutions Knowledge":62,"Internal Systems Navigation + Forecast Hygiene":50}}},
+        {name:"Sam Lee",role:"AM",pre:82,post:88,session:"both",competencyScores:{pre:{"Collaboration":78,"Industry / Solutions Knowledge":88,"Problem Solving":74},post:{"Collaboration":85,"Industry / Solutions Knowledge":92,"Internal Systems Navigation + Forecast Hygiene":83}}},
+        {name:"Parker Davis",role:"AM",pre:67,post:null,session:"pre",competencyScores:{pre:{"Collaboration":60,"Industry / Solutions Knowledge":73,"Problem Solving":58},post:{}}},
+        {name:"Reese Wilson",role:"NCA",pre:53,post:68,session:"both",competencyScores:{pre:{"Collaboration":45,"Industry / Solutions Knowledge":62,"Problem Solving":42},post:{"Collaboration":62,"Industry / Solutions Knowledge":72,"Internal Systems Navigation + Forecast Hygiene":65}}},
+        {name:"Blake Moore",role:"AM",pre:76,post:80,session:"both",competencyScores:{pre:{"Collaboration":70,"Industry / Solutions Knowledge":82,"Problem Solving":66},post:{"Collaboration":78,"Industry / Solutions Knowledge":85,"Internal Systems Navigation + Forecast Hygiene":76}}},
+        {name:"Sage Taylor",role:"NCA",pre:41,post:null,session:"pre",competencyScores:{pre:{"Collaboration":35,"Industry / Solutions Knowledge":50,"Problem Solving":28},post:{}}},
+        {name:"Charlie Brown",role:"AM",pre:85,post:89,session:"both",competencyScores:{pre:{"Collaboration":80,"Industry / Solutions Knowledge":90,"Problem Solving":78},post:{"Collaboration":87,"Industry / Solutions Knowledge":93,"Internal Systems Navigation + Forecast Hygiene":86}}},
+        {name:"Skylar Jones",role:"NCA",pre:60,post:74,session:"both",competencyScores:{pre:{"Collaboration":53,"Industry / Solutions Knowledge":68,"Problem Solving":50},post:{"Collaboration":70,"Industry / Solutions Knowledge":78,"Internal Systems Navigation + Forecast Hygiene":72}}},
+        {name:"Phoenix Garcia",role:"AM",pre:70,post:null,session:"pre",competencyScores:{pre:{"Collaboration":63,"Industry / Solutions Knowledge":76,"Problem Solving":60},post:{}}},
+        {name:"Rowan Martinez",role:"NCA",pre:38,post:48,session:"both",competencyScores:{pre:{"Collaboration":30,"Industry / Solutions Knowledge":48,"Problem Solving":25},post:{"Collaboration":45,"Industry / Solutions Knowledge":55,"Internal Systems Navigation + Forecast Hygiene":42}}}
+      ],
+      questions:[
+        {text:"What are the three tiers of the Kaseya Reseller Partner Program?",competency:"Industry / Solutions Knowledge",type:"Multiple Choice",difficulty:"Medium",survey:"pre",correct:14,total:17},
+        {text:"Which platform is used for partner deal registration?",competency:"Internal Systems Navigation + Forecast Hygiene",type:"Multiple Choice",difficulty:"Easy",survey:"pre",correct:12,total:17},
+        {text:"A partner asks about MDF eligibility. How do you respond?",competency:"Business Acumen & Negotiation",type:"Scenario",difficulty:"Hard",survey:"pre",correct:8,total:17},
+        {text:"True or False: All reseller partners have access to NFR licenses.",competency:"Industry / Solutions Knowledge",type:"True/False",difficulty:"Easy",survey:"pre",correct:15,total:17},
+        {text:"Describe the co-sell motion for K365 Endpoint.",competency:"Collaboration",type:"Short Answer",difficulty:"Hard",survey:"pre",correct:7,total:17},
+        {text:"What is the primary benefit of the Kaseya partner portal?",competency:"Internal Systems Navigation + Forecast Hygiene",type:"Multiple Choice",difficulty:"Easy",survey:"post",correct:6,total:7},
+        {text:"Explain two ways partners can earn tier advancement.",competency:"Business Acumen & Negotiation",type:"Short Answer",difficulty:"Medium",survey:"post",correct:5,total:7},
+        {text:"A partner is stuck on a deal. Walk through your collaboration approach.",competency:"Collaboration",type:"Scenario",difficulty:"Hard",survey:"post",correct:4,total:7}
+      ]
+    },
+    {
+      id:"t2",name:"SLED Pipeline Training",type:"Pre-Training Assessment",
+      date:"2026-03-19",targetAudience:["AM","RS"],targetSize:60,
+      respondents:{pre:12,post:0},
+      gapScores:{"Industry / Solutions Knowledge":75,"Account Planning & Discovery":58},
+      preScores:{"Industry / Solutions Knowledge":75,"Account Planning & Discovery":58},
+      postScores:{},
+      recommendations:{
+        "Industry / Solutions Knowledge":"Review SLED vertical product positioning and use-case library.",
+        "Account Planning & Discovery":"Complete Discovery Framework e-learning; practice ICP mapping."
+      },
+      trainees:[
+        {name:"Jordan Blake",role:"AM",pre:74,post:null,session:"pre",competencyScores:{pre:{"Industry / Solutions Knowledge":78,"Account Planning & Discovery":62},post:{}}},
+        {name:"Casey Reed",role:"RS",pre:62,post:null,session:"pre",competencyScores:{pre:{"Industry / Solutions Knowledge":68,"Account Planning & Discovery":52},post:{}}},
+        {name:"Morgan Ellis",role:"AM",pre:83,post:null,session:"pre",competencyScores:{pre:{"Industry / Solutions Knowledge":88,"Account Planning & Discovery":72},post:{}}},
+        {name:"Taylor Fox",role:"RS",pre:55,post:null,session:"pre",competencyScores:{pre:{"Industry / Solutions Knowledge":60,"Account Planning & Discovery":45},post:{}}},
+        {name:"Riley Stone",role:"AM",pre:90,post:null,session:"pre",competencyScores:{pre:{"Industry / Solutions Knowledge":92,"Account Planning & Discovery":82},post:{}}},
+        {name:"Avery Cross",role:"RS",pre:48,post:null,session:"pre",competencyScores:{pre:{"Industry / Solutions Knowledge":52,"Account Planning & Discovery":38},post:{}}},
+        {name:"Quinn Banks",role:"AM",pre:71,post:null,session:"pre",competencyScores:{pre:{"Industry / Solutions Knowledge":75,"Account Planning & Discovery":60},post:{}}},
+        {name:"Drew Marsh",role:"RS",pre:67,post:null,session:"pre",competencyScores:{pre:{"Industry / Solutions Knowledge":70,"Account Planning & Discovery":56},post:{}}},
+        {name:"Sam Crane",role:"AM",pre:79,post:null,session:"pre",competencyScores:{pre:{"Industry / Solutions Knowledge":82,"Account Planning & Discovery":68},post:{}}},
+        {name:"Parker Holt",role:"RS",pre:58,post:null,session:"pre",competencyScores:{pre:{"Industry / Solutions Knowledge":62,"Account Planning & Discovery":48},post:{}}},
+        {name:"Reese Grant",role:"AM",pre:85,post:null,session:"pre",competencyScores:{pre:{"Industry / Solutions Knowledge":88,"Account Planning & Discovery":76},post:{}}},
+        {name:"Blake Summers",role:"RS",pre:52,post:null,session:"pre",competencyScores:{pre:{"Industry / Solutions Knowledge":56,"Account Planning & Discovery":42},post:{}}}
+      ],
+      questions:[
+        {text:"What government procurement vehicle is most common in SLED deals?",competency:"Industry / Solutions Knowledge",type:"Multiple Choice",difficulty:"Medium",survey:"pre",correct:9,total:12},
+        {text:"Which Kaseya product is most relevant to K-12 school districts?",competency:"Industry / Solutions Knowledge",type:"Multiple Choice",difficulty:"Easy",survey:"pre",correct:10,total:12},
+        {text:"Describe the discovery questions you would ask a SLED prospect.",competency:"Account Planning & Discovery",type:"Short Answer",difficulty:"Hard",survey:"pre",correct:6,total:12},
+        {text:"True or False: SLED accounts require a separate quoting process.",competency:"Industry / Solutions Knowledge",type:"True/False",difficulty:"Easy",survey:"pre",correct:11,total:12},
+        {text:"Which ICP characteristic most differentiates a SLED account from a commercial one?",competency:"Account Planning & Discovery",type:"Multiple Choice",difficulty:"Hard",survey:"pre",correct:7,total:12}
+      ]
+    }
+  ],
+  QUESTION_BANK:[],
+  TRAINING_CATALOG:[
+    {id:"c1",title:"Channel 101: Kaseya Reseller Partner Program",type:"Bootcamp",pillars:["Industry / Solutions Knowledge","Collaboration","Business Acumen & Negotiation"],platform:"Showpad",audience:["AM","NCA"],status:"Active"},
+    {id:"c2",title:"SLED Fundamentals",type:"E-Learning",pillars:["Industry / Solutions Knowledge","Account Planning & Discovery"],platform:"Articulate Storyline",audience:["AM","RS"],status:"Active"},
+    {id:"c3",title:"Enterprise Calculator Microlearning",type:"Microlearning",pillars:["Business Acumen & Negotiation","Internal Systems Navigation + Forecast Hygiene"],platform:"Showpad",audience:["AM"],status:"Active"},
+    {id:"c4",title:"Salesforce Lightning Transition",type:"Job Aid",pillars:["Internal Systems Navigation + Forecast Hygiene"],platform:"PDF/SharePoint",audience:["AM","NCA","TAM","RS"],status:"Active"},
+    {id:"c5",title:"Managing Your Book of Business",type:"Workshop",pillars:["Account Planning & Discovery","Customer Service & Communication"],platform:"Live/Zoom",audience:["AM","NCA"],status:"In Development"}
+  ],
+  CONTENT_TRACKER:[
+    {id:"ct1",title:"Channel 101 Slide Deck",training:"Channel 101 \u2014 Bootcamp 2",pillar:"Industry / Solutions Knowledge",format:"PowerPoint",status:"Complete",notes:"Reviewed by GTM leadership Mar 15",description:"Full slide deck covering partner program tiers, co-sell motions, and deal registration workflows."},
+    {id:"ct2",title:"SLED Discovery Job Aid",training:"SLED Pipeline Training",pillar:"Account Planning & Discovery",format:"PDF",status:"In Review",notes:"Pending legal sign-off",description:"One-page reference card with SLED-specific discovery questions and ICP criteria."},
+    {id:"ct3",title:"K365 Price Increase Infomercial",training:"",pillar:"Industry / Solutions Knowledge",format:"Video",status:"In Development",notes:"Retro 90s style; Sora + Synthesia",description:"60-second retro infomercial-style video announcing K365 Endpoint price changes. Cartoon pitchman character."}
+  ],
+  INSTRUCTIONS_TEXT:"1. Upload training data via the Upload Data tab. Supports MS Forms, Zoom Poll, or generic CSV.\n2. Review Gap Analysis to see pillar-level scores. Scores auto-calculate from uploaded question responses.\n3. Drill into Trainee Scores \u2014 expand any row to see per-competency breakdown. Edit name or role inline.\n4. Question Bank \u2014 author questions with A/B/C/D choices and answer keys. Assign to a training or keep as Drafts.\n5. Training Catalogue \u2014 add, edit, or delete training entries. Title changes cascade to all references.\n6. Content Tracker \u2014 track content development status. Add descriptions per item.\n7. Export a 5-sheet Excel workbook from the Export tab, or click Download Dashboard to save for GitHub.\n8. GitHub push: rename file to index.html, drag to github.com/kfranco113/GTM-Dashboard-v7, commit."
+};
+
+// ════════════════════════════════════════════════════════════
+// STATE — synced with Google Sheets via Apps Script
+// ════════════════════════════════════════════════════════════
+let TRAININGS, QUESTION_BANK, TRAINING_CATALOG, CONTENT_TRACKER, INSTRUCTIONS_TEXT;
+let saveTimer=null;
+let pollTimer=null;
+let lastSavedHash='';
+
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbx9HdNaX5CndV8pdQgwFD8mW6DXit80rwvS1AN9BCCc4czsv7XvqFGshPfR8pKWQFfq/exec';
+const POLL_INTERVAL=60000;
+
+function showLoadingOverlay(){
+  if(document.getElementById('loading-overlay'))return;
+  const ov=document.createElement('div');
+  ov.id='loading-overlay';
+  ov.style.cssText='position:fixed;inset:0;background:#F0F2FA;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;';
+  ov.innerHTML='<div style="font-size:40px;">📊</div>'
+    +'<div style="font-size:18px;font-weight:700;color:#0D1B4B;">Kaseya GTM Dashboard</div>'
+    +'<div style="font-size:13px;color:#6b7280;">Loading live data from Google Sheets...</div>'
+    +'<div style="width:220px;height:4px;background:#D8DCF0;border-radius:4px;overflow:hidden;margin-top:8px;">'
+    +'<div id="loading-bar" style="height:100%;width:0%;background:#00B4D8;border-radius:4px;transition:width 0.5s;"></div></div>';
+  document.body.appendChild(ov);
+  setTimeout(()=>{const b=document.getElementById('loading-bar');if(b)b.style.width='70%';},100);
+}
+
+function hideLoadingOverlay(){
+  const ov=document.getElementById('loading-overlay');
+  if(!ov)return;
+  const b=document.getElementById('loading-bar');
+  if(b)b.style.width='100%';
+  setTimeout(()=>{ov.style.opacity='0';ov.style.transition='opacity 0.3s';setTimeout(()=>ov.remove(),300);},300);
+}
+
+function setSaveStatus(color,text){
+  const dot=document.getElementById('auto-save-dot');
+  const lbl=document.getElementById('save-label');
+  const colors={green:'var(--green)',gold:'var(--gold)',yellow:'var(--yellow)',red:'var(--red)'};
+  if(dot)dot.style.background=colors[color]||color;
+  if(lbl)lbl.textContent=text;
+}
+
+function loadState(){
+  resetToDefaults();
+  renderHome();
+  showLoadingOverlay();
+  setSaveStatus('gold','Loading from Sheets...');
+  setTimeout(()=>hideLoadingOverlay(),8000);
+  fetchFromSheets(true);
+  clearInterval(pollTimer);
+  pollTimer=setInterval(()=>fetchFromSheets(false),POLL_INTERVAL);
+}
+
+function fetchFromSheets(isInitial){
+  fetch(APPS_SCRIPT_URL,{method:'GET',redirect:'follow'})
+    .then(r=>r.json())
+    .then(res=>{
+      if(res.success&&res.data){
+        const incoming=JSON.stringify(res.data);
+        if(incoming!==lastSavedHash){
+          lastSavedHash=incoming;
+          const d=res.data;
+          TRAININGS=d.TRAININGS||DEFAULT_DATA.TRAININGS;
+          QUESTION_BANK=d.QUESTION_BANK||[];
+          TRAINING_CATALOG=d.TRAINING_CATALOG||DEFAULT_DATA.TRAINING_CATALOG;
+          CONTENT_TRACKER=d.CONTENT_TRACKER||DEFAULT_DATA.CONTENT_TRACKER;
+          INSTRUCTIONS_TEXT=d.INSTRUCTIONS_TEXT||DEFAULT_DATA.INSTRUCTIONS_TEXT;
+          if(!QUESTION_BANK.length)initQBank();
+          switchTab(activeTab||'home');
+          if(!isInitial)showToast('Dashboard updated','info',1500);
+        }
+        setSaveStatus('green','Live — '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+        if(isInitial)showToast('Live data loaded','success',2000);
+      } else {
+        if(!QUESTION_BANK.length)initQBank();
+        if(isInitial)switchTab(activeTab||'home');
+        setSaveStatus('green','Ready');
+        if(isInitial)showToast('Connected — no data yet','info',2000);
+      }
+      if(isInitial)hideLoadingOverlay();
+    })
+    .catch(err=>{
+      console.warn('Sheets fetch failed:',err);
+      setSaveStatus('yellow','Offline — local only');
+      if(isInitial){
+        try{
+          const raw=localStorage.getItem(LS_KEY);
+          if(raw){
+            const d=JSON.parse(raw);
+            TRAININGS=d.TRAININGS||DEFAULT_DATA.TRAININGS;
+            QUESTION_BANK=d.QUESTION_BANK||[];
+            TRAINING_CATALOG=d.TRAINING_CATALOG||DEFAULT_DATA.TRAINING_CATALOG;
+            CONTENT_TRACKER=d.CONTENT_TRACKER||DEFAULT_DATA.CONTENT_TRACKER;
+            INSTRUCTIONS_TEXT=d.INSTRUCTIONS_TEXT||DEFAULT_DATA.INSTRUCTIONS_TEXT;
+            showToast('Sheets offline — local backup loaded','info',4000);
+          }
+        }catch(e){}
+        if(!QUESTION_BANK.length)initQBank();
+        switchTab(activeTab||'home');
+        hideLoadingOverlay();
+      }
+    });
+}
+
+function manualRefresh(){
+  setSaveStatus('gold','Refreshing...');
+  showToast('Refreshing from Google Sheets...','info',1500);
+  lastSavedHash='';
+  fetchFromSheets(false);
+}
+
+function resetToDefaults(){
+  TRAININGS=JSON.parse(JSON.stringify(DEFAULT_DATA.TRAININGS));
+  QUESTION_BANK=[];
+  TRAINING_CATALOG=JSON.parse(JSON.stringify(DEFAULT_DATA.TRAINING_CATALOG));
+  CONTENT_TRACKER=JSON.parse(JSON.stringify(DEFAULT_DATA.CONTENT_TRACKER));
+  INSTRUCTIONS_TEXT=DEFAULT_DATA.INSTRUCTIONS_TEXT;
+  initQBank();
+}
+
+function initQBank(){
+  let id=1;
+  TRAININGS.forEach(tr=>{
+    tr.questions.forEach(q=>{
+      QUESTION_BANK.push({
+        id:"q"+id++,text:q.text,choiceA:"",choiceB:"",choiceC:"",choiceD:"",
+        correctAnswer:"",explanation:"",
+        pillar:q.competency,type:q.type,difficulty:q.difficulty,
+        role:"",level:"",training:tr.name,survey:q.survey,
+        correct:q.correct,total:q.total
+      });
+    });
+  });
+}
+
+function autoSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    try{
+      localStorage.setItem(LS_KEY,JSON.stringify({TRAININGS,QUESTION_BANK,TRAINING_CATALOG,CONTENT_TRACKER,INSTRUCTIONS_TEXT}));
+    }catch(e){console.warn('localStorage backup failed',e);}
+    setSaveStatus('gold','Saving to Sheets...');
+    const payload=JSON.stringify({TRAININGS,QUESTION_BANK,TRAINING_CATALOG,CONTENT_TRACKER,INSTRUCTIONS_TEXT});
+    fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',body:payload,headers:{'Content-Type':'text/plain'}})
+    .then(()=>{
+      lastSavedHash=payload;
+      setSaveStatus('green','Saved — '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+    })
+    .catch(err=>{
+      console.warn('Sheets save failed:',err);
+      setSaveStatus('yellow','Saved locally (Sheets unreachable)');
+    });
+  },800);
+}
+
+// ════════════════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════════════════
+function el(id){return document.getElementById(id);}
+function escH(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+
+function scoreColor(s){
+  if(s===null||s===undefined)return '#9ca3af';
+  if(s<60)return 'var(--red)';
+  if(s<80)return 'var(--yellow)';
+  return 'var(--green)';
+}
+function scoreBadge(s){
+  if(s===null||s===undefined)return '<span class="badge badge-gray">Not Assessed</span>';
+  if(s<60)return '<span class="badge badge-red">'+s+'%</span>';
+  if(s<80)return '<span class="badge badge-yellow">'+s+'%</span>';
+  return '<span class="badge badge-green">'+s+'%</span>';
+}
+function scoreLabel(s){
+  if(s===null||s===undefined)return 'Not Assessed';
+  if(s<60)return 'Needs Intervention';
+  if(s<80)return 'Developing';
+  return 'Proficient';
+}
+function scoreBar(s){
+  const pct=s===null?0:Math.min(s,100);
+  const c=scoreColor(s);
+  return '<div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:'+pct+'%;background:'+c+'"></div></div>'
+    +'<span class="bar-pct" style="color:'+c+'">'+(s===null?'N/A':s+'%')+'</span></div>';
+}
+function typeBadge(t){
+  const m={'Multiple Choice':'badge-teal','True/False':'badge-purple','Scenario':'badge-gold','Short Answer':'badge-green','Open':'badge-gray'};
+  return '<span class="badge '+(m[t]||'badge-gray')+'">'+escH(t||'?')+'</span>';
+}
+function parseScore(raw){
+  if(!raw&&raw!==0)return null;
+  const s=String(raw).trim();
+  const frac=s.match(/([\d.]+)\s*\/\s*([\d.]+)/);
+  if(frac){const n=parseFloat(frac[1]),d=parseFloat(frac[2]);return d>0?Math.round(n/d*100):null;}
+  const n=parseFloat(s.replace('%','').replace(',','.'));
+  return isNaN(n)?null:Math.round(n);
+}
+
+let toastTimer=null;
+function showToast(msg,type='info',dur=3000){
+  const t=el('toast');
+  t.textContent=msg;
+  t.style.background=type==='success'?'var(--green)':type==='error'?'var(--red)':'var(--navy)';
+  t.style.display='block';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.style.display='none',dur);
+}
+
+// ════════════════════════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════════════════════════
+const TAB_TITLES={
+  home:'🏠 Home',instructions:'📖 Instructions',competency:'📋 Competency Library',
+  gap:'📊 Gap Analysis',trainees:'👤 Trainee Scores',questions:'🔍 Question Breakdown',
+  trends:'📈 Trends',catalog:'🎓 Training Catalogue',qbank:'📚 Question Bank',
+  tracker:'🛠 Content Tracker',export:'📤 Export',upload:'⬆ Upload Data'
+};
+let activeTab='home';
+let activeCharts={};
+
+function switchTab(id){
+  activeTab=id;
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  const pane=el('tab-'+id);
+  if(pane)pane.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const ni=document.querySelector('.nav-item[data-tab="'+id+'"]');
+  if(ni)ni.classList.add('active');
+  el('topbar-title').textContent=TAB_TITLES[id]||id;
+  // Destroy old charts to prevent canvas reuse errors
+  if(activeCharts[id]){
+    Object.values(activeCharts[id]).forEach(c=>{try{c.destroy();}catch(e){}});
+    activeCharts[id]={};
+  } else { activeCharts[id]={}; }
+  const renders={home:renderHome,instructions:renderInstructions,competency:renderCompetency,
+    gap:renderGap,trainees:renderTrainees,questions:renderQuestions,
+    trends:renderTrends,catalog:renderCatalog,qbank:renderQBank,
+    tracker:renderTracker,export:renderExport,upload:renderUpload};
+  if(renders[id])renders[id]();
+}
+
+document.querySelectorAll('.nav-item').forEach(n=>{
+  n.addEventListener('click',()=>switchTab(n.dataset.tab));
+});
+
+// ════════════════════════════════════════════════════════════
+// HOME
+// ════════════════════════════════════════════════════════════
+function renderHome(){
+  const totalT=TRAININGS.reduce((a,t)=>a+t.trainees.length,0);
+  const preS=TRAININGS.flatMap(t=>t.trainees.map(tr=>tr.pre).filter(s=>s!==null));
+  const postS=TRAININGS.flatMap(t=>t.trainees.map(tr=>tr.post).filter(s=>s!==null));
+  const avgPre=preS.length?Math.round(preS.reduce((a,b)=>a+b)/preS.length):0;
+  const avgPost=postS.length?Math.round(postS.reduce((a,b)=>a+b)/postS.length):0;
+  const needsIntervention=TRAININGS.flatMap(t=>Object.values(t.gapScores)).filter(s=>s!==null&&s<60).length;
+
+  let tRows=TRAININGS.map(t=>{
+    const preA=t.trainees.filter(tr=>tr.pre!==null);
+    const postA=t.trainees.filter(tr=>tr.post!==null);
+    const pa=preA.length?Math.round(preA.reduce((a,tr)=>a+tr.pre,0)/preA.length):null;
+    const poa=postA.length?Math.round(postA.reduce((a,tr)=>a+tr.post,0)/postA.length):null;
+    return '<tr class="clickable" onclick="switchTab(\'gap\')">'
+      +'<td><strong>'+escH(t.name)+'</strong></td>'
+      +'<td>'+t.date+'</td>'
+      +'<td><span class="badge badge-navy">'+escH(t.type)+'</span></td>'
+      +'<td>'+t.targetAudience.join(', ')+'</td>'
+      +'<td>'+scoreBar(pa)+'</td>'
+      +'<td>'+scoreBar(poa)+'</td>'
+      +'<td>'+t.respondents.pre+' pre / '+t.respondents.post+' post</td>'
+      +'</tr>';
+  }).join('');
+
+  const quickLinks=[
+    ['📤','Upload Training Data','upload'],['📊','Gap Analysis','gap'],
+    ['👤','Trainee Scores','trainees'],['📚','Question Bank','qbank'],
+    ['🎓','Training Catalogue','catalog'],['🛠','Content Tracker','tracker']
+  ];
+  const qlHtml=quickLinks.map(([ico,lbl,tab])=>'<div class="quick-link" onclick="switchTab(\''+tab+'\')">'
+    +'<span class="ql-icon">'+ico+'</span><span class="ql-text">'+lbl+'</span></div>').join('');
+
+  el('tab-home').innerHTML=
+    '<div class="stat-grid">'
+    +'<div class="stat-card"><div class="stat-val">'+TRAININGS.length+'</div><div class="stat-lbl">Trainings</div></div>'
+    +'<div class="stat-card gold"><div class="stat-val">'+totalT+'</div><div class="stat-lbl">Total Trainees</div></div>'
+    +'<div class="stat-card green"><div class="stat-val">'+avgPre+'%</div><div class="stat-lbl">Avg Pre-Score</div></div>'
+    +'<div class="stat-card purple"><div class="stat-val">'+(avgPost>0?avgPost+'%':'N/A')+'</div><div class="stat-lbl">Avg Post-Score</div></div>'
+    +'<div class="stat-card red"><div class="stat-val">'+needsIntervention+'</div><div class="stat-lbl">Pillars Need Intervention</div></div>'
+    +'</div>'
+    +'<div class="quick-links">'+qlHtml+'</div>'
+    +'<div class="card"><div class="card-title">📅 Recent Trainings</div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Training</th><th>Date</th><th>Type</th><th>Audience</th><th>Pre Avg</th><th>Post Avg</th><th>Respondents</th></tr></thead>'
+    +'<tbody>'+tRows+'</tbody></table></div></div>';
+}
+
+// ════════════════════════════════════════════════════════════
+// INSTRUCTIONS
+// ════════════════════════════════════════════════════════════
+function renderInstructions(){
+  let editing=false;
+  function draw(){
+    const lines=INSTRUCTIONS_TEXT.split('\n').filter(l=>l.trim());
+    const stepsHtml=lines.map((l,i)=>'<div class="step-item"><div class="step-num">'+(i+1)+'</div><div style="font-size:13px;line-height:1.6;padding-top:3px;">'+escH(l.replace(/^\d+\.\s*/,''))+'</div></div>').join('');
+    if(editing){
+      el('tab-instructions').innerHTML='<div class="card">'
+        +'<div class="card-title-row"><div class="card-title">📖 Instructions</div>'
+        +'<button class="btn btn-navy btn-sm" onclick="saveInstr()">💾 Save</button></div>'
+        +'<textarea id="instr-ta" style="min-height:280px;width:100%;font-size:13px;line-height:1.7;">'+escH(INSTRUCTIONS_TEXT)+'</textarea>'
+        +'</div>'
+        +'<div class="card"><div class="card-title">🔑 Score Legend</div>'+scoreLegend()+'</div>';
+    } else {
+      el('tab-instructions').innerHTML='<div class="card">'
+        +'<div class="card-title-row"><div class="card-title">📖 How to Use This Dashboard</div>'
+        +'<button class="btn btn-ghost btn-sm" onclick="editInstr()">✏️ Edit</button></div>'
+        +stepsHtml+'</div>'
+        +'<div class="card" style="border-left:4px solid var(--teal);background:linear-gradient(135deg,#f0fbff,#fff);">'
+        +'<div class="card-title">📤 How to Upload Training Data</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">'
+        +'<div style="background:#f8f9fe;border-radius:10px;padding:16px;">'
+        +'<div style="font-weight:700;color:var(--navy);margin-bottom:8px;">📁 Supported File Types</div>'
+        +'<div style="font-size:13px;line-height:1.8;color:var(--muted);">'
+        +'<span class="badge badge-teal">Microsoft Forms</span> Excel export (.xlsx)<br>'
+        +'<span class="badge badge-purple">Zoom Poll</span> CSV export (.csv)<br>'
+        +'<span class="badge badge-navy">Showpad</span> Excel export (.xlsx)<br>'
+        +'<span class="badge badge-gray">Generic</span> Any CSV with Name + Score columns'
+        +'</div></div>'
+        +'<div style="background:#f8f9fe;border-radius:10px;padding:16px;">'
+        +'<div style="font-weight:700;color:var(--navy);margin-bottom:8px;">🔍 Where to See Your Data</div>'
+        +'<div style="font-size:13px;line-height:1.8;color:var(--muted);">'
+        +'After uploading, check these tabs:<br>'
+        +'<span onclick="switchTab('gap')" style="color:var(--teal);cursor:pointer;font-weight:600;">📊 Gap Analysis</span> — pillar scores by training<br>'
+        +'<span onclick="switchTab('trainees')" style="color:var(--teal);cursor:pointer;font-weight:600;">👤 Trainee Scores</span> — individual results<br>'
+        +'<span onclick="switchTab('questions')" style="color:var(--teal);cursor:pointer;font-weight:600;">🔍 Question Breakdown</span> — per-question stats<br>'
+        +'<span onclick="switchTab('trends')" style="color:var(--teal);cursor:pointer;font-weight:600;">📈 Trends</span> — progress over time'
+        +'</div></div></div>'
+        +'<div style="background:#fff9e6;border:1px solid #f4c43044;border-radius:10px;padding:14px;">'
+        +'<div style="font-weight:700;color:var(--navy);margin-bottom:10px;">📋 Upload Steps</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;text-align:center;font-size:12px;">'
+        +'<div style="background:#fff;border-radius:8px;padding:10px;border:1px solid var(--border);"><div style="font-size:20px;">📁</div><strong>1. Select File</strong><br><span style="color:var(--muted);">Upload your export</span></div>'
+        +'<div style="background:#fff;border-radius:8px;padding:10px;border:1px solid var(--border);"><div style="font-size:20px;">🔍</div><strong>2. Detect Format</strong><br><span style="color:var(--muted);">Auto-detected</span></div>'
+        +'<div style="background:#fff;border-radius:8px;padding:10px;border:1px solid var(--border);"><div style="font-size:20px;">🗂</div><strong>3. Map Columns</strong><br><span style="color:var(--muted);">Name + Score</span></div>'
+        +'<div style="background:#fff;border-radius:8px;padding:10px;border:1px solid var(--border);"><div style="font-size:20px;">👁</div><strong>4. Preview</strong><br><span style="color:var(--muted);">Confirm trainees</span></div>'
+        +'<div style="background:#fff;border-radius:8px;padding:10px;border:1px solid var(--border);"><div style="font-size:20px;">✅</div><strong>5. Complete</strong><br><span style="color:var(--muted);">Data saved live</span></div>'
+        +'</div></div></div>'
+        +'<div class="card"><div class="card-title">🔑 Score Legend</div>'+scoreLegend()+'</div>';
+    }
+  }
+  function scoreLegend(){
+    return '<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px;">'
+      +'<div><span class="badge badge-red">Needs Intervention</span> &nbsp;Below 60%</div>'
+      +'<div><span class="badge badge-yellow">Developing</span> &nbsp;60\u201379%</div>'
+      +'<div><span class="badge badge-green">Proficient</span> &nbsp;80%+</div>'
+      +'<div><span class="badge badge-gray">Not Assessed</span> &nbsp;No data</div>'
+      +'</div>';
+  }
+  window.editInstr=()=>{editing=true;draw();};
+  window.saveInstr=()=>{
+    const ta=el('instr-ta');
+    if(ta){INSTRUCTIONS_TEXT=ta.value;autoSave();showToast('Instructions saved','success');}
+    editing=false;draw();
+  };
+  draw();
+}
+
+// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// COMPETENCY LIBRARY
+// ════════════════════════════════════════════════════════════
+function renderCompetency(){
+  let activeRole='AM';
+  let editingPillar=null;
+  let editingDesc=null;
+  if(!window.competencyDescs){
+    window.competencyDescs={};
+    PILLARS.forEach((_,i)=>{competencyDescs[i]={};ROLES.forEach(r=>{competencyDescs[i][r]={};});});
+  }
+  function draw(){
+    const pills=ROLES.map(r=>'<div class="pill'+(r===activeRole?' active':'')+'" onclick="setRole(''+r+'')">'+r+'</div>').join('');
+    let acc=PILLARS.map((p,pi)=>{
+      const qCount=QUESTION_BANK.filter(q=>q.pillar===p).length;
+      const pillarLabel=editingPillar===pi
+        ?'<input id="pillar-inp-'+pi+'" value="'+escH(p)+'" style="border:1px solid var(--teal);border-radius:6px;padding:3px 8px;font-size:13px;width:300px;" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.stopPropagation();savePillarName('+pi+');}"><button class="btn btn-teal btn-xs" style="margin-left:6px;" onclick="event.stopPropagation();savePillarName('+pi+')">Save</button>'
+        :'\uD83D\uDCD6 '+escH(p)+'<button class="btn-icon" onclick="event.stopPropagation();startEditPillar('+pi+')" title="Edit pillar name">\u270F\uFE0F</button>';
+      const levels=KSABA.map(cat=>{
+        const stored=(competencyDescs[pi]&&competencyDescs[pi][activeRole]&&competencyDescs[pi][activeRole][cat]);
+        const descText=stored||('Demonstrate '+cat.toLowerCase()+' competency in '+p+' as applied to the '+activeRole+' role.');
+        const safeId='desc-ta-'+pi+'-'+cat.replace(/[^a-zA-Z0-9]/g,'_');
+        const isEditingThis=editingDesc&&editingDesc.pi===pi&&editingDesc.cat===cat;
+        if(isEditingThis){
+          return '<div style="padding:8px 0;border-bottom:1px solid #f0f2fa;font-size:13px;display:flex;align-items:flex-start;gap:8px;">'
+            +'<strong style="color:var(--purple);min-width:80px;">'+cat+':</strong>'
+            +'<textarea id="'+safeId+'" style="flex:1;min-height:64px;font-size:13px;border:1px solid var(--teal);border-radius:6px;padding:6px;resize:vertical;">'+escH(descText)+'</textarea>'
+            +'<div style="display:flex;flex-direction:column;gap:4px;">'
+            +'<button class="btn btn-teal btn-xs" onclick="saveCompDesc('+pi+',\''+cat.replace(/'/g,"\\'")+'\')">Save</button>'
+            +'<button class="btn btn-ghost btn-xs" onclick="cancelEditDesc()">Cancel</button>'
+            +'</div></div>';
+        }
+        return '<div style="padding:6px 0;border-bottom:1px solid #f0f2fa;font-size:13px;display:flex;align-items:flex-start;gap:8px;">'
+          +'<strong style="color:var(--purple);min-width:80px;">'+cat+':</strong>'
+          +'<span style="color:var(--muted);flex:1;">'+escH(descText)+'</span>'
+          +'<button class="btn-icon" onclick="startEditDesc('+pi+',\''+cat.replace(/'/g,"\\'")+'\')" title="Edit">\u270F\uFE0F</button>'
+          +'</div>';
+      }).join('');
+      const accId='acc-'+pi;
+      return '<div class="accordion-item">'
+        +'<div class="acc-header" data-acc="'+accId+'" onclick="toggleAcc(this)">'
+        +'<span style="display:flex;align-items:center;gap:6px;flex:1;">'+pillarLabel+'</span>'
+        +'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">'
+        +'<span class="badge badge-teal">'+qCount+' Qs</span>'
+        +'<span class="acc-icon" style="font-size:11px;">&#9660;</span>'
+        +'</div></div>'
+        +'<div class="acc-body" id="'+accId+'">'+levels+'</div>'
+        +'</div>';
+    }).join('');
+    el('tab-competency').innerHTML=
+      '<div class="card"><div class="card-title-row"><div class="card-title">\uD83D\uDCCB Competency Library</div>'
+      +'<span style="font-size:12px;color:var(--muted);">Click \u270F\uFE0F to edit pillar names or descriptions per role</span></div>'
+      +'<div class="pill-row">'+pills+'</div></div>'
+      +'<div>'+acc+'</div>';
+  }
+  window.setRole=r=>{activeRole=r;draw();};
+  window.startEditPillar=pi=>{editingPillar=pi;draw();setTimeout(()=>{const inp=document.getElementById('pillar-inp-'+pi);if(inp)inp.focus();},50);};
+  window.savePillarName=pi=>{
+    const inp=document.getElementById('pillar-inp-'+pi);
+    if(!inp)return;
+    const newName=inp.value.trim();
+    if(!newName){showToast('Pillar name cannot be empty','error');return;}
+    const old=PILLARS[pi];
+    if(old===newName){editingPillar=null;draw();return;}
+    PILLARS[pi]=newName;
+    QUESTION_BANK.forEach(q=>{if(q.pillar===old)q.pillar=newName;});
+    TRAININGS.forEach(t=>{
+      ['gapScores','preScores','postScores','recommendations'].forEach(k=>{
+        if(t[k]&&t[k][old]!==undefined){t[k][newName]=t[k][old];delete t[k][old];}
+      });
+      t.trainees.forEach(tr=>{
+        if(tr.competencyScores){
+          ['pre','post'].forEach(s=>{if(tr.competencyScores[s]&&tr.competencyScores[s][old]!==undefined){tr.competencyScores[s][newName]=tr.competencyScores[s][old];delete tr.competencyScores[s][old];}});
+        }
+      });
+    });
+    TRAINING_CATALOG.forEach(c=>{const idx=c.pillars.indexOf(old);if(idx>=0)c.pillars[idx]=newName;});
+    editingPillar=null;autoSave();showToast('Pillar renamed and cascaded everywhere','success');draw();
+  };
+  window.startEditDesc=(pi,cat)=>{editingDesc={pi,cat};draw();setTimeout(()=>{const safeId='desc-ta-'+pi+'-'+cat.replace(/[^a-zA-Z0-9]/g,'_');const ta=document.getElementById(safeId);if(ta)ta.focus();},50);};
+  window.saveCompDesc=(pi,cat)=>{
+    const safeId='desc-ta-'+pi+'-'+cat.replace(/[^a-zA-Z0-9]/g,'_');
+    const ta=document.getElementById(safeId);
+    if(!ta)return;
+    if(!competencyDescs[pi])competencyDescs[pi]={};
+    if(!competencyDescs[pi][activeRole])competencyDescs[pi][activeRole]={};
+    competencyDescs[pi][activeRole][cat]=ta.value.trim();
+    editingDesc=null;autoSave();showToast('Description saved for '+activeRole+' / '+cat,'success');draw();
+  };
+  window.cancelEditDesc=()=>{editingDesc=null;draw();};
+  window.toggleAcc=function(hdr){
+    const id=hdr.dataset.acc;const body=el(id);const ico=hdr.querySelector('.acc-icon');
+    const isOpen=body.classList.contains('open');
+    body.classList.toggle('open',!isOpen);hdr.classList.toggle('open',!isOpen);
+    ico.innerHTML=isOpen?'&#9660;':'&#9650;';
+  };
+  draw();
+}
+
+// GAP ANALYSIS
+// ════════════════════════════════════════════════════════════
+function renderGap(){
+  let selId=TRAININGS.length?TRAININGS[0].id:'';
+  function draw(){
+    const t=TRAININGS.find(x=>x.id===selId);
+    const opts=TRAININGS.map(x=>'<option value="'+x.id+'"'+(x.id===selId?' selected':'')+'>'+escH(x.name)+'</option>').join('');
+    let html='<div class="card">'
+      +'<div class="card-title-row"><div class="card-title">📊 Gap Analysis</div>'
+      +'<button class="btn btn-gold btn-sm" onclick="exportGap()">⬇ Export</button></div>'
+      +'<div class="filter-row"><select onchange="selGap(this.value)" style="width:auto;min-width:260px;">'+opts+'</select></div></div>';
+    if(!t){el('tab-gap').innerHTML=html;return;}
+    const scores=t.gapScores||{};
+    const pd=PILLARS.filter(p=>scores[p]!==undefined&&scores[p]!==null);
+    const prof=pd.filter(p=>scores[p]>=80).length;
+    const dev=pd.filter(p=>scores[p]>=60&&scores[p]<80).length;
+    const ni=pd.filter(p=>scores[p]<60).length;
+    html+='<div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">'
+      +'<div class="stat-card green"><div class="stat-val">'+prof+'</div><div class="stat-lbl">Proficient (&ge;80%)</div></div>'
+      +'<div class="stat-card gold"><div class="stat-val">'+dev+'</div><div class="stat-lbl">Developing (60-79%)</div></div>'
+      +'<div class="stat-card red"><div class="stat-val">'+ni+'</div><div class="stat-lbl">Needs Intervention (&lt;60%)</div></div>'
+      +'</div>';
+    const progBars=pd.map(p=>{
+      const s=scores[p];
+      return '<div style="margin-bottom:10px;">'
+        +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">'
+        +'<span>'+escH(p)+'</span><span style="color:'+scoreColor(s)+';font-weight:700;">'+s+'%</span></div>'
+        +'<div style="background:#e9ecef;border-radius:20px;height:10px;overflow:hidden;">'
+        +'<div style="width:'+s+'%;height:100%;background:'+scoreColor(s)+';border-radius:20px;transition:width .5s;"></div></div></div>';
+    }).join('');
+    html+='<div class="two-col">'
+      +'<div class="card"><div class="card-title">📊 Pillar Gap Scores</div>'
+      +'<div class="chart-wrap" style="height:280px;"><canvas id="gap-bar-chart"></canvas></div></div>'
+      +'<div class="card"><div class="card-title">📈 Progress by Pillar</div>'+progBars+'</div>'
+      +'</div>';
+    const pre=t.preScores||{};const post=t.postScores||{};
+    const ppP=[...new Set([...Object.keys(pre),...Object.keys(post)])];
+    if(ppP.length){
+      html+='<div class="card"><div class="card-title">📉 Pre vs Post Comparison</div>'
+        +'<div class="chart-wrap" style="height:260px;"><canvas id="gap-pp-chart"></canvas></div></div>';
+    }
+    let tRows=PILLARS.map(p=>{
+      const s=scores[p]!==undefined?scores[p]:null;
+      const rec=(t.recommendations&&t.recommendations[p])||defaultAction(p);
+      return '<tr><td>'+escH(p)+'</td><td>'+scoreBar(s)+'</td><td>'+scoreBadge(s)+' '+scoreLabel(s)+'</td>'
+        +'<td style="font-size:12px;color:var(--muted);">'+escH(rec)+'</td></tr>';
+    }).join('');
+    html+='<div class="card"><div class="card-title">📋 Pillar Summary</div>'
+      +'<div class="tbl-wrap"><table><thead><tr><th>Pillar</th><th>Score</th><th>Status</th><th>Recommendation</th></tr></thead>'
+      +'<tbody>'+tRows+'</tbody></table></div></div>';
+    el('tab-gap').innerHTML=html;
+    // Charts
+    const bc=el('gap-bar-chart');
+    if(bc&&pd.length){
+      activeCharts.gap=activeCharts.gap||{};
+      activeCharts.gap.bar=new Chart(bc,{type:'bar',data:{
+        labels:pd.map(p=>p.length>20?p.slice(0,20)+'…':p),
+        datasets:[{label:'Gap Score',data:pd.map(p=>scores[p]),
+          backgroundColor:pd.map(p=>scoreColor(scores[p])+'aa'),
+          borderColor:pd.map(p=>scoreColor(scores[p])),borderWidth:2,borderRadius:6}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+          scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}}});
+    }
+    const pc=el('gap-pp-chart');
+    if(pc&&ppP.length){
+      activeCharts.gap=activeCharts.gap||{};
+      activeCharts.gap.pp=new Chart(pc,{type:'bar',data:{
+        labels:ppP.map(p=>p.length>18?p.slice(0,18)+'…':p),
+        datasets:[
+          {label:'Pre',data:ppP.map(p=>pre[p]||null),backgroundColor:'#93c5fdaa',borderColor:'#93c5fd',borderWidth:2,borderRadius:4},
+          {label:'Post',data:ppP.map(p=>post[p]||null),backgroundColor:'#00B4D8aa',borderColor:'#00B4D8',borderWidth:2,borderRadius:4}
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},
+          scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}}});
+    }
+  }
+  window.selGap=id=>{selId=id;draw();};
+  draw();
+}
+function defaultAction(p){
+  const m={
+    "Customer Service & Communication":"Role-play objection scenarios; review communication frameworks.",
+    "Collaboration":"Cross-functional pairing exercise; Slack norms refresher.",
+    "Industry / Solutions Knowledge":"Product deep-dive sessions; competitive battlecard review.",
+    "Business Acumen & Negotiation":"Financial modeling workshop; negotiation simulation.",
+    "Account Planning & Discovery":"Discovery call recordings review; ICP mapping exercise.",
+    "Problem Solving":"Case study analysis; escalation scenario practice.",
+    "Internal Systems Navigation + Forecast Hygiene":"Salesforce Lightning walkthrough; forecast hygiene audit."
+  };
+  return m[p]||'Review relevant training materials.';
+}
+
+// ════════════════════════════════════════════════════════════
+// TRAINEE SCORES
+// ════════════════════════════════════════════════════════════
+function renderTrainees(){
+  let selId=TRAININGS.length?TRAININGS[0].id:'';
+  let filterRole='All';
+  let expandedIdx=null;
+  let editingName=null;
+  let editingRole=null;
+  let editingSession=null;
+
+  function draw(){
+    const t=TRAININGS.find(x=>x.id===selId);
+    const tOpts=TRAININGS.map(x=>'<option value="'+x.id+'"'+(x.id===selId?' selected':'')+'>'+escH(x.name)+'</option>').join('');
+    const rOpts=['All',...ROLES].map(r=>'<option value="'+r+'"'+(r===filterRole?' selected':'')+'>'+r+'</option>').join('');
+    let html='<div class="card">'
+      +'<div class="card-title-row"><div class="card-title">👤 Trainee Scores</div>'
+      +'<button class="btn btn-gold btn-sm" onclick="exportTrainees()">⬇ Export</button></div>'
+      +'<div class="filter-row">'
+      +'<select onchange="selTr(this.value)" style="width:auto;min-width:260px;">'+tOpts+'</select>'
+      +'<select onchange="selTrRole(this.value)" style="width:auto;">'+rOpts+'</select>'
+      +'</div></div>';
+    if(!t){el('tab-trainees').innerHTML=html+'<p style="color:var(--muted);padding:20px;">No trainings found.</p>';return;}
+    const trainees=t.trainees.filter(tr=>filterRole==='All'||tr.role===filterRole);
+    let rows='';
+    trainees.forEach(tr=>{
+      const gi=t.trainees.indexOf(tr);
+      const delta=tr.pre!==null&&tr.post!==null?tr.post-tr.pre:null;
+      const dHtml=delta===null?'&mdash;':'<span style="color:'+(delta>=0?'var(--green)':'var(--red)')+';">'+(delta>=0?'+':'')+delta+'%</span>';
+      const isExp=expandedIdx===gi;
+      // Name cell with pencil
+      let nameCell;
+      if(editingName===gi){
+        nameCell='<input id="nm-inp-'+gi+'" style="border:1px solid var(--teal);border-radius:6px;padding:3px 8px;font-size:13px;width:150px;" value="'+escH(tr.name)+'" onblur="saveName('+gi+')" onkeydown="if(event.key===\'Enter\')saveName('+gi+')">';
+      } else {
+        nameCell='<div class="editable-cell">'+escH(tr.name)+'<button class="btn-icon" onclick="startEditName('+gi+')" title="Edit name">✏️</button></div>';
+      }
+      // Role cell with pencil
+      let roleCell;
+      if(editingRole===gi){
+        const rSel=ROLES.map(r=>'<option'+(r===tr.role?' selected':'')+'>'+r+'</option>').join('');
+        roleCell='<select id="role-sel-'+gi+'" onchange="saveRole('+gi+',this.value)" style="width:auto;border:1px solid var(--teal);border-radius:6px;padding:3px;">'+rSel+'</select>';
+      } else {
+        roleCell='<div class="editable-cell"><span class="badge badge-navy">'+tr.role+'</span><button class="btn-icon" onclick="startEditRole('+gi+')" title="Edit role">✏️</button></div>';
+      }
+      // Session cell with edit
+      let sessionCell;
+      if(editingSession===gi){
+        const sOpts=['pre','post','both'].map(s=>'<option'+(s===tr.session?' selected':'')+'>'+s+'</option>').join('');
+        sessionCell='<select id="sess-sel-'+gi+'" onchange="saveSession('+gi+',this.value)" style="width:auto;border:1px solid var(--teal);border-radius:6px;padding:3px;">'+sOpts+'</select>';
+      } else {
+        sessionCell='<div class="editable-cell"><span class="badge badge-teal">'+escH(tr.session)+'</span><button class="btn-icon" onclick="startEditSession('+gi+')" title="Edit session">✏️</button></div>';
+      }
+      rows+='<tr class="clickable'+(isExp?' sub-row':'')+'" onclick="toggleTr('+gi+',event)">'
+        +'<td>'+nameCell+'</td>'
+        +'<td>'+roleCell+'</td>'
+        +'<td>'+sessionCell+'</td>'
+        +'<td>'+scoreBar(tr.pre)+'</td>'
+        +'<td>'+scoreBar(tr.post)+'</td>'
+        +'<td>'+dHtml+'</td>'
+        +'<td style="text-align:center;white-space:nowrap;">'+(isExp?'▲':'▼')+' <button class="btn-icon" onclick="deleteTr('+gi+',event)" title="Delete trainee" style="color:var(--red);">🗑</button></td></tr>';
+      if(isExp){
+        const preC=(tr.competencyScores&&tr.competencyScores.pre)||{};
+        const postC=(tr.competencyScores&&tr.competencyScores.post)||{};
+        const cP=[...new Set([...Object.keys(preC),...Object.keys(postC)])];
+        let breakdown=cP.map(p=>{
+          const ps=preC[p]!==undefined?preC[p]:null;
+          const pt=postC[p]!==undefined?postC[p]:null;
+          const d=ps!==null&&pt!==null?pt-ps:null;
+          return '<tr class="sub-row"><td style="padding-left:32px;color:var(--muted);font-size:12px;">↳ '+escH(p)+'</td>'
+            +'<td colspan="2"></td><td>'+scoreBar(ps)+'</td><td>'+scoreBar(pt)+'</td>'
+            +'<td>'+(d===null?'&mdash;':'<span style="color:'+(d>=0?'var(--green)':'var(--red)')+';">'+(d>=0?'+':'')+d+'%</span>')+'</td><td></td></tr>';
+        }).join('');
+        const lowP=cP.filter(p=>(preC[p]||100)<70);
+        const recs=lowP.map(p=>{const m=TRAINING_CATALOG.find(c=>c.pillars&&c.pillars.includes(p));return m?'<span class="badge badge-teal" style="margin:2px;">'+escH(m.title)+'</span>':null;}).filter(Boolean).join(' ')||'None';
+        const remP=lowP[0];
+        const remText=(t.recommendations&&remP&&t.recommendations[remP])||defaultAction(remP||'');
+        breakdown+='<tr class="sub-row"><td colspan="7" style="padding:12px 32px;background:#eef2ff;">'
+          +'<strong style="color:var(--navy);">📚 Recommended Training:</strong> '+recs+'<br>'
+          +'<strong style="color:var(--navy);">🔧 Remediation:</strong> <span style="font-size:12px;color:var(--muted);">'+escH(remText)+'</span>'
+          +'</td></tr>';
+        rows+=breakdown;
+      }
+    });
+    html+='<div class="card"><div class="tbl-wrap"><table>'
+      +'<thead><tr><th>Name</th><th>Role</th><th>Session</th><th>Pre Score</th><th>Post Score</th><th>Delta</th><th></th></tr></thead>'
+      +'<tbody>'+rows+'</tbody></table></div></div>';
+    el('tab-trainees').innerHTML=html;
+    if(editingName!==null){const i=el('nm-inp-'+editingName);if(i){i.focus();i.select();}}
+    if(editingRole!==null){const i=el('role-sel-'+editingRole);if(i)i.focus();}
+  }
+
+  window.selTr=id=>{selId=id;expandedIdx=null;editingName=null;editingRole=null;draw();};
+  window.selTrRole=r=>{filterRole=r;draw();};
+  window.toggleTr=(idx,evt)=>{
+    if(evt&&['INPUT','SELECT','BUTTON'].includes(evt.target.tagName))return;
+    expandedIdx=expandedIdx===idx?null:idx;draw();
+  };
+  window.startEditName=idx=>{editingName=idx;editingRole=null;draw();};
+  window.saveName=idx=>{
+    const t=TRAININGS.find(x=>x.id===selId);
+    const inp=el('nm-inp-'+idx);
+    if(t&&inp&&inp.value.trim())t.trainees[idx].name=inp.value.trim();
+    editingName=null;autoSave();showToast('Name updated','success');draw();
+  };
+  window.startEditRole=idx=>{editingRole=idx;editingName=null;draw();};
+  window.saveRole=(idx,val)=>{
+    const t=TRAININGS.find(x=>x.id===selId);
+    if(t)t.trainees[idx].role=val;
+    editingRole=null;autoSave();showToast('Role updated','success');draw();
+  };
+  draw();
+}
+
+// ════════════════════════════════════════════════════════════
+// QUESTION BREAKDOWN
+// ════════════════════════════════════════════════════════════
+function renderQuestions(){
+  let selId=TRAININGS.length?TRAININGS[0].id:'';
+  let filterSurvey='all';
+  function draw(){
+    const t=TRAININGS.find(x=>x.id===selId);
+    const tOpts=TRAININGS.map(x=>'<option value="'+x.id+'"'+(x.id===selId?' selected':'')+'>'+escH(x.name)+'</option>').join('');
+    let html='<div class="card">'
+      +'<div class="card-title-row"><div class="card-title">🔍 Question Breakdown</div>'
+      +'<button class="btn btn-gold btn-sm" onclick="exportQuestions()">⬇ Export</button></div>'
+      +'<div class="filter-row">'
+      +'<select onchange="selQBD(this.value)" style="width:auto;min-width:260px;">'+tOpts+'</select>'
+      +'<select onchange="selQBDSurvey(this.value)" style="width:auto;">'
+      +'<option value="all">All Surveys</option><option value="pre">Pre Only</option><option value="post">Post Only</option>'
+      +'</select></div></div>';
+    if(!t){el('tab-questions').innerHTML=html;return;}
+    let qs=(t.questions||[]).filter(q=>filterSurvey==='all'||q.survey===filterSurvey);
+    html+='<div class="card"><div class="card-title">📊 Question Scores</div>'
+      +'<div class="chart-wrap" style="height:260px;"><canvas id="q-bar-chart"></canvas></div></div>';
+    let rows=qs.map((q,i)=>{
+      const pct=q.total>0?Math.round(q.correct/q.total*100):null;
+      return '<tr><td style="font-weight:700;text-align:center;">'+(i+1)+'</td>'
+        +'<td style="max-width:300px;font-size:12px;">'+escH(q.text)+'</td>'
+        +'<td><span class="badge badge-purple" style="font-size:10px;white-space:normal;max-width:160px;display:inline-block;">'+escH(q.competency||'')+'</span></td>'
+        +'<td>'+typeBadge(q.type)+'</td>'
+        +'<td><span class="badge badge-gray">'+escH(q.difficulty||'')+'</span></td>'
+        +'<td><span class="badge badge-teal">'+escH(q.survey||'')+'</span></td>'
+        +'<td style="text-align:center;">'+q.correct+'</td>'
+        +'<td style="text-align:center;">'+q.total+'</td>'
+        +'<td>'+scoreBar(pct)+'</td></tr>';
+    }).join('');
+    html+='<div class="card"><div class="tbl-wrap"><table>'
+      +'<thead><tr><th>#</th><th>Question</th><th>Competency</th><th>Type</th><th>Difficulty</th><th>Survey</th><th>Correct</th><th>Total</th><th>Score</th></tr></thead>'
+      +'<tbody>'+rows+'</tbody></table></div></div>';
+    el('tab-questions').innerHTML=html;
+    const bc=el('q-bar-chart');
+    if(bc&&qs.length){
+      activeCharts.questions=activeCharts.questions||{};
+      activeCharts.questions.bar=new Chart(bc,{type:'bar',data:{
+        labels:qs.map((q,i)=>'Q'+(i+1)),
+        datasets:[{label:'Score %',
+          data:qs.map(q=>q.total>0?Math.round(q.correct/q.total*100):0),
+          backgroundColor:qs.map(q=>scoreColor(q.total>0?Math.round(q.correct/q.total*100):0)+'aa'),
+          borderColor:qs.map(q=>scoreColor(q.total>0?Math.round(q.correct/q.total*100):0)),
+          borderWidth:2,borderRadius:6}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+          tooltip:{callbacks:{label:ctx=>{const q=qs[ctx.dataIndex];return q.correct+'/'+q.total+' correct ('+ctx.parsed.y+'%)';}}}},
+          scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}}});
+    }
+  }
+  window.selQBD=id=>{selId=id;draw();};
+  window.selQBDSurvey=v=>{filterSurvey=v;draw();};
+  draw();
+}
+
+// ════════════════════════════════════════════════════════════
+// TRENDS
+// ════════════════════════════════════════════════════════════
+function renderTrends(){
+  let activeTrId='all';
+  function draw(){
+  const srcTrainings=activeTrId==='all'?TRAININGS:TRAININGS.filter(t=>t.id===activeTrId);
+  const pills='<div class="pill'+(activeTrId==='all'?' active':'')+'" onclick="selTrend('all')">All Trainings</div>'
+    +TRAININGS.map(t=>'<div class="pill'+(t.id===activeTrId?' active':'')+'" onclick="selTrend(''+t.id+'')">'+escH(t.name)+'</div>').join('');
+  const dates=[...new Set(srcTrainings.map(t=>t.date))].sort();
+  const preAvgs=dates.map(d=>{const s=srcTrainings.filter(t=>t.date===d).flatMap(t=>t.trainees.map(tr=>tr.pre).filter(v=>v!==null));return s.length?Math.round(s.reduce((a,b)=>a+b)/s.length):null;});
+  const postAvgs=dates.map(d=>{const s=srcTrainings.filter(t=>t.date===d).flatMap(t=>t.trainees.map(tr=>tr.post).filter(v=>v!==null));return s.length?Math.round(s.reduce((a,b)=>a+b)/s.length):null;});
+  const participation=dates.map(d=>srcTrainings.filter(t=>t.date===d).reduce((a,t)=>a+t.respondents.pre+t.respondents.post,0));
+  let rows=srcTrainings.map(t=>{
+    const pS=t.trainees.map(tr=>tr.pre).filter(v=>v!==null);
+    const poS=t.trainees.map(tr=>tr.post).filter(v=>v!==null);
+    const pa=pS.length?Math.round(pS.reduce((a,b)=>a+b)/pS.length):null;
+    const poa=poS.length?Math.round(poS.reduce((a,b)=>a+b)/poS.length):null;
+    const tgt=t.targetSize;
+    const total=t.respondents.pre+t.respondents.post;
+    const pct=tgt?Math.round(total/tgt*100):null;
+    return '<tr><td><strong>'+escH(t.name)+'</strong></td><td>'+t.date+'</td>'
+      +'<td><span class="badge badge-navy">'+escH(t.type)+'</span></td>'
+      +'<td>'+scoreBar(pa)+'</td><td>'+scoreBar(poa)+'</td>'
+      +'<td style="text-align:center;">'+tgt+'</td>'
+      +'<td>'+scoreBar(pct)+'</td></tr>';
+  }).join('');
+  el('tab-trends').innerHTML=
+    '<div class="card"><div class="card-title">📈 Filter by Training</div><div class="pill-row">'+pills+'</div></div>'
+    +'<div class="two-col">'
+    +'<div class="card"><div class="card-title">📈 Score Trend Over Time</div>'
+    +'<div class="chart-wrap" style="height:260px;"><canvas id="trend-line"></canvas></div></div>'
+    +'<div class="card"><div class="card-title">👥 Participation by Date</div>'
+    +'<div class="chart-wrap" style="height:260px;"><canvas id="trend-part"></canvas></div></div>'
+    +'</div>'
+    +'<div class="card"><div class="card-title">📋 Training Summary</div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Training</th><th>Date</th><th>Type</th><th>Pre Avg</th><th>Post Avg</th><th>Target</th><th>% of Target</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table></div></div>';
+  // charts now rendered inside draw()
+    // Charts — built inside draw() so they refresh on filter change
+    activeCharts.trends=activeCharts.trends||{};
+    const lc2=el('trend-line');
+    if(lc2){
+      activeCharts.trends=activeCharts.trends||{};
+      activeCharts.trends.line=new Chart(lc2,{type:'line',data:{labels:dates,datasets:[
+        {label:'Pre Avg',data:preAvgs,borderColor:'#93c5fd',backgroundColor:'#93c5fd22',tension:.3,fill:true,pointRadius:5},
+        {label:'Post Avg',data:postAvgs,borderColor:'var(--teal)',backgroundColor:'#00B4D822',tension:.3,fill:true,pointRadius:5}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}}});
+    }
+    const pc2=el('trend-part');
+    if(pc2){
+      activeCharts.trends.part=new Chart(pc2,{type:'bar',data:{labels:dates,datasets:[
+        {label:'Participants',data:participation,backgroundColor:'#6B3FA0aa',borderColor:'var(--purple)',borderWidth:2,borderRadius:6}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+    }
+  } // end draw()
+  window.selTrend=id=>{
+    activeTrId=id;
+    if(activeCharts.trends){Object.values(activeCharts.trends).forEach(c=>{try{c.destroy();}catch(e){}});activeCharts.trends={};}
+    draw();
+  };
+  draw();
+}
+
+// ════════════════════════════════════════════════════════════
+// TRAINING CATALOGUE
+// ════════════════════════════════════════════════════════════
+function renderCatalog(){
+  let search='';
+  function draw(){
+    const filtered=TRAINING_CATALOG.filter(c=>!search||c.title.toLowerCase().includes(search.toLowerCase()));
+    const sCls=s=>s==='Active'?'badge-green':s==='In Development'?'badge-yellow':'badge-gray';
+    const cards=filtered.map(c=>'<div class="catalog-card">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+      +'<strong style="font-size:14px;color:var(--navy);flex:1;margin-right:8px;">'+escH(c.title)+'</strong>'
+      +'<span class="badge '+sCls(c.status)+'">'+escH(c.status)+'</span></div>'
+      +'<div style="font-size:12px;color:var(--muted);">'+escH(c.type)+' &bull; '+escH(c.platform)+'</div>'
+      +(c.description?'<div style="font-size:12px;color:var(--text);margin:4px 0;line-height:1.5;">'+escH(c.description)+'</div>':'')
+      +'<div>'+c.pillars.map(p=>'<span class="badge badge-teal" style="margin:2px;font-size:10px;">'+escH(p.length>24?p.slice(0,24)+'…':p)+'</span>').join('')+'</div>'
+      +'<div style="font-size:12px;color:var(--muted);">Audience: '+escH(c.audience.join(', '))+'</div>'
+      +'<div style="display:flex;gap:6px;margin-top:4px;">'
+      +'<button class="btn btn-ghost btn-sm" onclick="openCatalogModal(\''+c.id+'\')">✏️ Edit</button>'
+      +'<button class="btn btn-red btn-sm" onclick="deleteCatalog(\''+c.id+'\')">🗑 Delete</button>'
+      +'</div></div>').join('');
+    let tRows=filtered.map(c=>'<tr>'
+      +'<td><strong>'+escH(c.title)+'</strong></td>'
+      +'<td>'+escH(c.type)+'</td>'
+      +'<td style="max-width:200px;font-size:12px;">'+c.pillars.map(p=>'<span class="badge badge-teal" style="margin:1px;font-size:10px;">'+escH(p.length>20?p.slice(0,20)+'…':p)+'</span>').join(' ')+'</td>'
+      +'<td>'+escH(c.platform)+'</td>'
+      +'<td>'+escH(c.audience.join(', '))+'</td>'
+      +'<td><span class="badge '+sCls(c.status)+'">'+escH(c.status)+'</span></td>'
+      +'<td style="white-space:nowrap;">'
+      +'<button class="btn btn-ghost btn-xs" onclick="openCatalogModal(\''+c.id+'\')">✏️ Edit</button> '
+      +'<button class="btn btn-red btn-xs" onclick="deleteCatalog(\''+c.id+'\')">🗑</button>'
+      +'</td></tr>').join('');
+    el('tab-catalog').innerHTML=
+      '<div class="card">'
+      +'<div class="card-title-row"><div class="card-title">🎓 Training Catalogue</div>'
+      +'<div style="display:flex;gap:8px;">'
+      +'<button class="btn btn-gold btn-sm" onclick="exportCatalogue()">⬇ Export</button>'
+      +'<button class="btn btn-navy btn-sm" onclick="openCatalogModal()">+ Add Training</button>'
+      +'</div></div>'
+      +'<div class="filter-row"><input type="text" placeholder="Search..." style="width:200px;" value="'+escH(search)+'" oninput="catalogSearch(this.value)"/></div>'
+      +'</div>'
+      +'<div class="catalog-card-grid">'+cards+'</div>'
+      +'<div class="card"><div class="tbl-wrap"><table>'
+      +'<thead><tr><th>Title</th><th>Type</th><th>Pillars</th><th>Platform</th><th>Audience</th><th>Status</th><th>Actions</th></tr></thead>'
+      +'<tbody>'+tRows+'</tbody></table></div></div>';
+  }
+  window.catalogSearch=v=>{search=v;draw();};
+  window.deleteCatalog=function(id){
+    const c=TRAINING_CATALOG.find(x=>x.id===id);
+    if(!c)return;
+    if(!confirm('Delete "'+c.title+'"?\n\nThis will remove it from the catalogue. Questions assigned to this training will be moved to Draft.'))return;
+    TRAINING_CATALOG=TRAINING_CATALOG.filter(x=>x.id!==id);
+    QUESTION_BANK.forEach(q=>{if(q.training===c.title)q.training='Draft';});
+    autoSave();showToast('Training deleted','success');draw();
+  };
+  window.openCatalogModal=function(id){
+    const ex=id?TRAINING_CATALOG.find(c=>c.id===id):null;
+    const v=f=>ex?(ex[f]||''):'';
+    const typeOpts=['Bootcamp','E-Learning','Microlearning','Job Aid','Workshop','Assessment','Pre-Training Assessment'].map(t=>'<option'+(t===v('type')?' selected':'')+'>'+t+'</option>').join('');
+    const statusOpts=['Active','In Development','Archived'].map(s=>'<option'+(s===v('status')?' selected':'')+'>'+s+'</option>').join('');
+    const audChk=ROLES.map(r=>'<label><input type="checkbox" class="aud-chk" value="'+r+'"'+(ex&&ex.audience.includes(r)?' checked':'')+'>'+r+'</label>').join('');
+    const pillChk=PILLARS.map(p=>'<label><input type="checkbox" class="pil-chk" value="'+escH(p)+'"'+(ex&&ex.pillars.includes(p)?' checked':'')+'>'+escH(p)+'</label>').join('');
+    el('catalog-modal-body').innerHTML=
+      '<button class="close-btn" onclick="closeMod(\'catalog\')">&#10005;</button>'
+      +'<h3>'+(ex?'Edit':'Add')+' Training</h3>'
+      +'<div class="form-grid">'
+      +'<div class="form-field full"><label>Title</label><input id="cat-title" value="'+escH(v('title'))+'"/></div>'
+      +'<div class="form-field"><label>Type</label><select id="cat-type">'+typeOpts+'</select></div>'
+      +'<div class="form-field"><label>Status</label><select id="cat-status">'+statusOpts+'</select></div>'
+      +'<div class="form-field full"><label>Platform</label><input id="cat-platform" value="'+escH(v('platform'))+'"/></div>'
+      +'<div class="form-field full"><label>Audience</label><div class="checkbox-list">'+audChk+'</div></div>'
+      +'<div class="form-field full"><label>Pillars</label><div class="pillar-check-list">'+pillChk+'</div></div>'
+      +'</div>'
+      +'<div class="modal-footer">'
+      +'<button class="btn btn-ghost" onclick="closeMod(\'catalog\')">Cancel</button>'
+      +'<button class="btn btn-navy" onclick="saveCatalog(\''+(id||'')+'\')">Save</button>'
+      +'</div>';
+    openMod('catalog');
+  };
+  window.saveCatalog=function(id){
+    const title=el('cat-title').value.trim();
+    if(!title){showToast('Title required','error');return;}
+    const type=el('cat-type').value;
+    const description=el('cat-desc')?el('cat-desc').value.trim():'';
+    const platform=el('cat-platform').value.trim();
+    const status=el('cat-status').value;
+    const audience=[...document.querySelectorAll('.aud-chk:checked')].map(cb=>cb.value);
+    const pillars=[...document.querySelectorAll('.pil-chk:checked')].map(cb=>cb.value);
+    if(id){
+      const ex=TRAINING_CATALOG.find(c=>c.id===id);
+      if(ex){
+        const old=ex.title;
+        Object.assign(ex,{title,description,type,platform,status,audience,pillars});
+        if(old!==title){
+          QUESTION_BANK.forEach(q=>{if(q.training===old)q.training=title;});
+          CONTENT_TRACKER.forEach(ct=>{if(ct.training===old)ct.training=title;});
+          showToast('Title cascaded to all references','success');
+        }
+      }
+    } else {
+      TRAINING_CATALOG.push({id:uid(),title,description,type,platform,status,audience,pillars});
+    }
+    autoSave();closeMod('catalog');draw();showToast('Training saved','success');
+  };
+  draw();
+}
+
+// ════════════════════════════════════════════════════════════
+// QUESTION BANK
+// ════════════════════════════════════════════════════════════
+function renderQBank(){
+  let filterTr='all',filterPillar='all',filterDiff='all',search='';
+  function draw(){
+    const trNames=[...new Set(QUESTION_BANK.map(q=>q.training).filter(Boolean))];
+    const tOpts='<option value="all">All Trainings</option><option value="Draft">📝 Drafts</option>'
+      +trNames.filter(n=>n!=='Draft').map(n=>'<option value="'+escH(n)+'"'+(n===filterTr?' selected':'')+'>'+escH(n)+'</option>').join('');
+    const pOpts='<option value="all">All Pillars</option>'+PILLARS.map(p=>'<option value="'+escH(p)+'"'+(p===filterPillar?' selected':'')+'>'+escH(p)+'</option>').join('');
+    const dOpts='<option value="all">All Difficulties</option>'+['Easy','Medium','Hard'].map(d=>'<option'+(d===filterDiff?' selected':'')+'>'+d+'</option>').join('');
+    let filtered=QUESTION_BANK.filter(q=>{
+      if(filterTr!=='all'&&(q.training||'Draft')!==filterTr)return false;
+      if(filterPillar!=='all'&&q.pillar!==filterPillar)return false;
+      if(filterDiff!=='all'&&q.difficulty!==filterDiff)return false;
+      if(search&&!q.text.toLowerCase().includes(search.toLowerCase()))return false;
+      return true;
+    });
+    const profC=filtered.filter(q=>q.total>0&&Math.round(q.correct/q.total*100)>=80).length;
+    const needsC=filtered.filter(q=>q.total>0&&Math.round(q.correct/q.total*100)<60).length;
+    let rows=filtered.map((q,i)=>{
+      const pct=q.total>0?Math.round(q.correct/q.total*100):null;
+      // CRITICAL: pillar = full pillar name; type = question type badge
+      return '<tr><td style="text-align:center;font-weight:700;">'+(i+1)+'</td>'
+        +'<td style="max-width:240px;font-size:12px;">'+escH(q.text)+'</td>'
+        +'<td style="max-width:140px;"><span class="badge badge-purple" style="font-size:10px;white-space:normal;">'+escH(q.pillar||'—')+'</span></td>'
+        +'<td>'+typeBadge(q.type)+'</td>'
+        +'<td><span class="badge badge-gray">'+escH(q.difficulty||'—')+'</span></td>'
+        +'<td style="font-size:12px;">'+escH(q.training||'Draft')+'</td>'
+        +'<td>'+scoreBar(pct)+'</td>'
+        +'<td style="white-space:nowrap;">'
+        +'<button class="btn btn-ghost btn-xs" onclick="openQBankModal(\''+q.id+'\')">✏️</button> '
+        +'<button class="btn btn-red btn-xs" onclick="deleteQ(\''+q.id+'\')">🗑</button>'
+        +'</td></tr>';
+    }).join('');
+    el('tab-qbank').innerHTML=
+      '<div class="card">'
+      +'<div class="card-title-row"><div class="card-title">📚 Question Bank</div>'
+      +'<div style="display:flex;gap:8px;">'
+      +'<button class="btn btn-gold btn-sm" onclick="exportQBank()">⬇ Export Bank</button>'
+      +'<button class="btn btn-purple btn-sm" onclick="exportQBankSheet()">📄 Export Sheet</button>'
+      +'<button class="btn btn-navy btn-sm" onclick="openQBankModal()">+ New Question</button>'
+      +'</div></div>'
+      +'<div class="filter-row">'
+      +'<input type="text" placeholder="Search questions..." style="width:180px;" oninput="filterQBankSearch(this.value)" value="'+escH(search)+'">'
+      +'<select onchange="filterQBankTr(this.value)" style="width:auto;">'+tOpts+'</select>'
+      +'<select onchange="filterQBankPillar(this.value)" style="width:auto;">'+pOpts+'</select>'
+      +'<select onchange="filterQBankDiff(this.value)" style="width:auto;">'+dOpts+'</select>'
+      +'</div>'
+      +'<div style="display:flex;gap:16px;font-size:13px;padding-top:4px;">'
+      +'<span>Total: <strong>'+filtered.length+'</strong></span>'
+      +'<span style="color:var(--green);">Proficient: <strong>'+profC+'</strong></span>'
+      +'<span style="color:var(--red);">Needs Work: <strong>'+needsC+'</strong></span>'
+      +'</div></div>'
+      +'<div class="card"><div class="tbl-wrap"><table>'
+      +'<thead><tr><th>#</th><th>Question</th><th>Pillar</th><th>Type</th><th>Difficulty</th><th>Training</th><th>Score</th><th>Actions</th></tr></thead>'
+      +'<tbody>'+rows+'</tbody></table></div></div>';
+  }
+  window.filterQBankTr=v=>{filterTr=v;draw();};
+  window.filterQBankPillar=v=>{filterPillar=v;draw();};
+  window.filterQBankDiff=v=>{filterDiff=v;draw();};
+  window.filterQBankSearch=v=>{search=v;draw();};
+  window.deleteQ=id=>{if(!confirm('Delete this question?'))return;QUESTION_BANK=QUESTION_BANK.filter(q=>q.id!==id);autoSave();showToast('Question deleted','success');draw();};
+  window.openQBankModal=function(id){
+    const q=id?QUESTION_BANK.find(x=>x.id===id):null;
+    const v=f=>q?(q[f]||''):'';
+    const trOpts=['Draft',...TRAININGS.map(t=>t.name),...TRAINING_CATALOG.map(c=>c.title)].filter((x,i,a)=>a.indexOf(x)===i)
+      .map(t=>'<option value="'+escH(t)+'"'+(v('training')===t?' selected':'')+'>'+escH(t)+'</option>').join('');
+    const pOpts=PILLARS.map(p=>'<option value="'+escH(p)+'"'+(v('pillar')===p?' selected':'')+'>'+escH(p)+'</option>').join('');
+    const typeOpts=['Multiple Choice','True/False','Scenario','Short Answer','Open'].map(t=>'<option'+(v('type')===t?' selected':'')+'>'+t+'</option>').join('');
+    const dOpts=['Easy','Medium','Hard'].map(d=>'<option'+(v('difficulty')===d?' selected':'')+'>'+d+'</option>').join('');
+    const aOpts=['','A','B','C','D','True','False','Open'].map(a=>'<option value="'+a+'"'+(v('correctAnswer')===a?' selected':'')+'>'+a+'</option>').join('');
+    el('qbank-modal-body').innerHTML=
+      '<button class="close-btn" onclick="closeMod(\'qbank\')">&#10005;</button>'
+      +'<h3>'+(q?'Edit':'Add')+' Question</h3>'
+      +'<div class="form-grid">'
+      +'<div class="form-field full"><label>Question Text</label><textarea id="q-text" style="min-height:70px;">'+escH(v('text'))+'</textarea></div>'
+      +'<div class="form-field"><label>Choice A</label><input id="q-a" value="'+escH(v('choiceA'))+'"/></div>'
+      +'<div class="form-field"><label>Choice B</label><input id="q-b" value="'+escH(v('choiceB'))+'"/></div>'
+      +'<div class="form-field"><label>Choice C</label><input id="q-c" value="'+escH(v('choiceC'))+'"/></div>'
+      +'<div class="form-field"><label>Choice D</label><input id="q-d" value="'+escH(v('choiceD'))+'"/></div>'
+      +'<div class="form-field"><label>Correct Answer</label><select id="q-ans">'+aOpts+'</select></div>'
+      +'<div class="form-field"><label>Question Type</label><select id="q-type">'+typeOpts+'</select></div>'
+      +'<div class="form-field"><label>Pillar</label><select id="q-pillar">'+pOpts+'</select></div>'
+      +'<div class="form-field"><label>Difficulty</label><select id="q-diff">'+dOpts+'</select></div>'
+      +'<div class="form-field"><label>Assign to Training</label><select id="q-training">'+trOpts+'</select></div>'
+      +'<div class="form-field"><label>Correct Count</label><input id="q-correct" type="number" value="'+(v('correct')||0)+'"/></div>'
+      +'<div class="form-field"><label>Total Responses</label><input id="q-total" type="number" value="'+(v('total')||0)+'"/></div>'
+      +'<div class="form-field full"><label>Explanation</label><textarea id="q-explain" style="min-height:60px;">'+escH(v('explanation'))+'</textarea></div>'
+      +'</div>'
+      +'<div class="modal-footer"><button class="btn btn-ghost" onclick="closeMod(\'qbank\')">Cancel</button>'
+      +'<button class="btn btn-navy" onclick="saveQ(\''+(id||'')+'\')">Save Question</button></div>';
+    openMod('qbank');
+  };
+  window.saveQ=function(id){
+    const text=el('q-text').value.trim();
+    if(!text){showToast('Question text required','error');return;}
+    const obj={text,choiceA:el('q-a').value,choiceB:el('q-b').value,choiceC:el('q-c').value,choiceD:el('q-d').value,
+      correctAnswer:el('q-ans').value,
+      pillar:el('q-pillar').value,   // full pillar name
+      type:el('q-type').value,       // question type
+      difficulty:el('q-diff').value,training:el('q-training').value,
+      correct:parseInt(el('q-correct').value)||0,total:parseInt(el('q-total').value)||0,
+      explanation:el('q-explain').value};
+    if(id){const qi=QUESTION_BANK.findIndex(q=>q.id===id);if(qi>=0)Object.assign(QUESTION_BANK[qi],obj);}
+    else QUESTION_BANK.push({id:'q'+uid(),...obj,survey:'pre',role:'',level:''});
+    autoSave();closeMod('qbank');draw();showToast('Question saved','success');
+  };
+  draw();
+}
+
+// ════════════════════════════════════════════════════════════
+// CONTENT TRACKER
+// ════════════════════════════════════════════════════════════
+function renderTracker(){
+  let filterStatus='all';
+  let expandedDesc=null;
+  function draw(){
+    const filtered=CONTENT_TRACKER.filter(ct=>filterStatus==='all'||ct.status===filterStatus);
+    const counts={'Complete':0,'In Review':0,'In Development':0,'Planned':0,'Not Started':0};
+    CONTENT_TRACKER.forEach(ct=>{if(counts[ct.status]!==undefined)counts[ct.status]++;else counts['Planned']++;});
+    const sCls=s=>s==='Complete'?'badge-green':s==='In Review'?'badge-teal':s==='In Development'?'badge-yellow':'badge-gray';
+    const sOpts=s=>['Complete','In Review','In Development','Planned','Not Started'].map(st=>'<option value="'+st+'"'+(st===s?' selected':'')+'>'+st+'</option>').join('');
+    let rows=filtered.map((ct,i)=>{
+      const realIdx=CONTENT_TRACKER.indexOf(ct);
+      const isExp=expandedDesc===realIdx;
+      return '<tr>'
+        +'<td><div style="font-weight:600;font-size:13px;">'+escH(ct.title)+'</div>'
+        +(ct.notes?'<div style="font-size:11px;color:var(--muted);">'+escH(ct.notes)+'</div>':'')
+        +'</td>'
+        +'<td style="font-size:12px;">'+escH(ct.training||'—')+'</td>'
+        +'<td style="font-size:12px;max-width:140px;">'+escH(ct.pillar||'')+'</td>'
+        +'<td>'+escH(ct.format||'')+'</td>'
+        +'<td><select class="btn btn-sm btn-ghost" style="padding:3px 6px;width:auto;" onchange="updateTrackerStatus('+realIdx+',this.value)">'+sOpts(ct.status)+'</select></td>'
+        +'<td style="white-space:nowrap;">'
+        +'<button class="btn btn-ghost btn-xs" onclick="toggleTrackerDesc('+realIdx+')">📋 Desc'+(isExp?' ▲':' ▼')+'</button> '
+        +'<button class="btn btn-ghost btn-xs" onclick="openTrackerModal('+realIdx+')">✏️</button> '
+        +'<button class="btn btn-red btn-xs" onclick="deleteTracker('+realIdx+')">🗑</button>'
+        +'</td></tr>'
+        +(isExp?'<tr class="sub-row"><td colspan="6"><div class="tracker-desc-area">'
+        +'<label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:6px;">Description</label>'
+        +'<textarea id="desc-ta-'+realIdx+'" style="min-height:80px;width:100%;font-size:13px;">'+escH(ct.description||'')+'</textarea>'
+        +'<button class="btn btn-navy btn-sm" style="margin-top:8px;" onclick="saveTrackerDesc('+realIdx+')">Save Description</button>'
+        +'</div></td></tr>':'');
+    }).join('');
+    el('tab-tracker').innerHTML=
+      '<div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));">'
+      +Object.entries(counts).map(([k,v])=>'<div class="stat-card '+(k==='Complete'?'green':k==='In Review'?'':k==='In Development'?'gold':'')+'"><div class="stat-val">'+v+'</div><div class="stat-lbl">'+k+'</div></div>').join('')
+      +'</div>'
+      +'<div class="two-col">'
+      +'<div class="card"><div class="card-title">📊 Status Overview</div>'
+      +'<div class="chart-wrap" style="height:200px;"><canvas id="tracker-chart"></canvas></div></div>'
+      +'<div class="card"><div class="card-title-row"><div class="card-title">📁 Content Items</div>'
+      +'<button class="btn btn-navy btn-sm" onclick="openTrackerModal()">+ Add Item</button></div>'
+      +'<div style="font-size:12px;color:var(--muted);">'+CONTENT_TRACKER.length+' items total</div>'
+      +'</div></div>'
+      +'<div class="card">'
+      +'<div class="card-title-row"><div class="card-title">📋 All Content</div>'
+      +'<div style="display:flex;gap:8px;">'
+      +'<select onchange="filterTrackerStatus(this.value)" style="width:auto;">'
+      +'<option value="all">All Statuses</option>'
+      +['Complete','In Review','In Development','Planned','Not Started'].map(s=>'<option value="'+s+'"'+(s===filterStatus?' selected':'')+'>'+s+'</option>').join('')
+      +'</select>'
+      +'<button class="btn btn-gold btn-sm" onclick="exportTracker()">⬇ Export</button>'
+      +'</div></div>'
+      +'<div class="tbl-wrap"><table>'
+      +'<thead><tr><th>Title / Notes</th><th>Training</th><th>Pillar</th><th>Format</th><th>Status</th><th>Actions</th></tr></thead>'
+      +'<tbody>'+rows+'</tbody></table></div></div>';
+    // Chart
+    activeCharts.tracker=activeCharts.tracker||{};
+    const cel=el('tracker-chart');
+    if(cel){
+      activeCharts.tracker.status=new Chart(cel,{type:'doughnut',data:{
+        labels:Object.keys(counts),
+        datasets:[{data:Object.values(counts),backgroundColor:['#27AE60','#00B4D8','#F39C12','#9ca3af','#E74C3C'],borderWidth:2}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'}}}});
+    }
+  }
+  window.filterTrackerStatus=v=>{filterStatus=v;draw();};
+  window.updateTrackerStatus=(i,val)=>{CONTENT_TRACKER[i].status=val;autoSave();showToast('Status updated','success');draw();};
+  window.toggleTrackerDesc=i=>{expandedDesc=expandedDesc===i?null:i;draw();};
+  window.saveTrackerDesc=i=>{
+    const ta=el('desc-ta-'+i);
+    if(ta){CONTENT_TRACKER[i].description=ta.value;autoSave();showToast('Description saved','success');}
+    draw();
+  };
+  window.deleteTracker=i=>{if(!confirm('Delete this item?'))return;CONTENT_TRACKER.splice(i,1);autoSave();showToast('Item deleted','success');draw();};
+  window.openTrackerModal=function(idx){
+    const ct=idx!==undefined&&idx!==null&&!isNaN(Number(idx))?CONTENT_TRACKER[idx]:null;
+    const v=f=>ct?(ct[f]||''):'';
+    const trOpts=['',  ...TRAININGS.map(t=>t.name),...TRAINING_CATALOG.map(c=>c.title)].filter((x,i,a)=>a.indexOf(x)===i)
+      .map(t=>'<option value="'+escH(t)+'"'+(v('training')===t?' selected':'')+'>'+escH(t||'— None —')+'</option>').join('');
+    const pOpts=PILLARS.map(p=>'<option value="'+escH(p)+'"'+(v('pillar')===p?' selected':'')+'>'+escH(p)+'</option>').join('');
+    const sOpts=['Complete','In Review','In Development','Planned','Not Started'].map(s=>'<option'+(v('status')===s?' selected':'')+'>'+s+'</option>').join('');
+    el('tracker-modal-body').innerHTML=
+      '<button class="close-btn" onclick="closeMod(\'tracker\')">&#10005;</button>'
+      +'<h3>'+(ct?'Edit':'Add')+' Content Item</h3>'
+      +'<div class="form-grid">'
+      +'<div class="form-field full"><label>Title</label><input id="ct-title" value="'+escH(v('title'))+'"/></div>'
+      +'<div class="form-field"><label>Training</label><select id="ct-training">'+trOpts+'</select></div>'
+      +'<div class="form-field"><label>Pillar</label><select id="ct-pillar">'+pOpts+'</select></div>'
+      +'<div class="form-field"><label>Format</label><input id="ct-format" value="'+escH(v('format'))+'"/></div>'
+      +'<div class="form-field"><label>Status</label><select id="ct-status">'+sOpts+'</select></div>'
+      +'<div class="form-field full"><label>Notes</label><input id="ct-notes" value="'+escH(v('notes'))+'"/></div>'
+      +'</div>'
+      +'<div class="modal-footer"><button class="btn btn-ghost" onclick="closeMod(\'tracker\')">Cancel</button>'
+      +'<button class="btn btn-navy" onclick="saveTracker('+(ct!==null?idx:'null')+')">Save</button></div>';
+    openMod('tracker');
+  };
+  window.saveTracker=function(idx){
+    const title=el('ct-title').value.trim();
+    if(!title){showToast('Title required','error');return;}
+    const obj={title,training:el('ct-training').value,pillar:el('ct-pillar').value,
+      format:el('ct-format').value,status:el('ct-status').value,notes:el('ct-notes').value};
+    if(idx!==null&&idx!==undefined&&!isNaN(Number(idx))){Object.assign(CONTENT_TRACKER[idx],obj);}
+    else CONTENT_TRACKER.push({id:uid(),...obj,description:''});
+    autoSave();closeMod('tracker');draw();showToast('Item saved','success');
+  };
+  draw();
+}
+
+// ════════════════════════════════════════════════════════════
+// EXPORT
+// ════════════════════════════════════════════════════════════
+function sheet(data){return XLSX.utils.aoa_to_sheet(data);}
+function dlWB(wb,name){XLSX.writeFile(wb,name);}
+
+function exportGap(){
+  const wb=XLSX.utils.book_new();
+  TRAININGS.forEach(t=>{
+    const rows=[['Pillar','Gap Score','Pre','Post','Status','Recommendation']];
+    PILLARS.forEach(p=>{const g=t.gapScores[p]!==undefined?t.gapScores[p]:null;rows.push([p,g,t.preScores[p]||null,t.postScores[p]||null,scoreLabel(g),defaultAction(p)]);});
+    XLSX.utils.book_append_sheet(wb,sheet(rows),t.name.slice(0,30));
+  });
+  dlWB(wb,'GTM_GapAnalysis.xlsx');
+}
+function exportTrainees(){
+  const wb=XLSX.utils.book_new();
+  TRAININGS.forEach(t=>{
+    const rows=[['Name','Role','Session','Pre Score','Post Score','Delta']];
+    t.trainees.forEach(tr=>rows.push([tr.name,tr.role,tr.session,tr.pre,tr.post,tr.pre!==null&&tr.post!==null?tr.post-tr.pre:null]));
+    XLSX.utils.book_append_sheet(wb,sheet(rows),t.name.slice(0,30));
+  });
+  dlWB(wb,'GTM_TraineeScores.xlsx');
+}
+function exportQuestions(){
+  const wb=XLSX.utils.book_new();
+  TRAININGS.forEach(t=>{
+    const rows=[['Question','Competency','Type','Difficulty','Survey','Correct','Total','Score%']];
+    t.questions.forEach(q=>rows.push([q.text,q.competency,q.type,q.difficulty,q.survey,q.correct,q.total,q.total>0?Math.round(q.correct/q.total*100):null]));
+    XLSX.utils.book_append_sheet(wb,sheet(rows),t.name.slice(0,30));
+  });
+  dlWB(wb,'GTM_QuestionBreakdown.xlsx');
+}
+function exportCatalogue(){
+  const rows=[['Title','Type','Platform','Audience','Pillars','Status']];
+  TRAINING_CATALOG.forEach(c=>rows.push([c.title,c.type,c.platform,c.audience.join(';'),c.pillars.join(';'),c.status]));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,sheet(rows),'Catalogue');dlWB(wb,'GTM_TrainingCatalogue.xlsx');
+}
+function exportQBank(){
+  const rows=[['ID','Question','Choice A','Choice B','Choice C','Choice D','Correct Answer','Pillar','Type','Difficulty','Training','Score%']];
+  QUESTION_BANK.forEach(q=>{const pct=q.total>0?Math.round(q.correct/q.total*100):null;rows.push([q.id,q.text,q.choiceA,q.choiceB,q.choiceC,q.choiceD,q.correctAnswer,q.pillar,q.type,q.difficulty,q.training,pct]);});
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,sheet(rows),'Question Bank');dlWB(wb,'GTM_QuestionBank.xlsx');
+}
+function exportQBankSheet(){
+  const clean=[['#','Question','Choice A','Choice B','Choice C','Choice D','Type','Pillar','Difficulty']];
+  QUESTION_BANK.forEach((q,i)=>clean.push([i+1,q.text,q.choiceA,q.choiceB,q.choiceC,q.choiceD,q.type,q.pillar,q.difficulty]));
+  const key=[['#','Question','Correct Answer','Explanation']];
+  QUESTION_BANK.forEach((q,i)=>key.push([i+1,q.text,q.correctAnswer,q.explanation]));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,sheet(clean),'Question Sheet');
+  XLSX.utils.book_append_sheet(wb,sheet(key),'Answer Key');
+  dlWB(wb,'GTM_QuestionSheet.xlsx');
+}
+function exportTracker(){
+  const rows=[['Title','Training','Pillar','Format','Status','Notes','Description']];
+  CONTENT_TRACKER.forEach(ct=>rows.push([ct.title,ct.training||'',ct.pillar,ct.format,ct.status,ct.notes||'',ct.description||'']));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,sheet(rows),'Content Tracker');dlWB(wb,'GTM_ContentTracker.xlsx');
+}
+function exportAll(){
+  const wb=XLSX.utils.book_new();
+  const g=[['Training','Pillar','Gap Score','Pre','Post','Status']];
+  TRAININGS.forEach(t=>{PILLARS.forEach(p=>{const s=t.gapScores[p]!==undefined?t.gapScores[p]:null;g.push([t.name,p,s,t.preScores[p]||null,t.postScores[p]||null,scoreLabel(s)]);});});
+  XLSX.utils.book_append_sheet(wb,sheet(g),'Gap Analysis');
+  const tr=[['Training','Name','Role','Session','Pre','Post','Delta']];
+  TRAININGS.forEach(t=>{t.trainees.forEach(r=>tr.push([t.name,r.name,r.role,r.session,r.pre,r.post,r.pre!==null&&r.post!==null?r.post-r.pre:null]));});
+  XLSX.utils.book_append_sheet(wb,sheet(tr),'Trainee Scores');
+  const q=[['Training','Question','Competency','Type','Difficulty','Survey','Correct','Total','Score%']];
+  TRAININGS.forEach(t=>{t.questions.forEach(x=>q.push([t.name,x.text,x.competency,x.type,x.difficulty,x.survey,x.correct,x.total,x.total>0?Math.round(x.correct/x.total*100):null]));});
+  XLSX.utils.book_append_sheet(wb,sheet(q),'Question Analysis');
+  const raw=[['Training','Name','Role','Session','Pre Score','Post Score']];
+  TRAININGS.forEach(t=>{t.trainees.forEach(r=>raw.push([t.name,r.name,r.role,r.session,r.pre,r.post]));});
+  XLSX.utils.book_append_sheet(wb,sheet(raw),'Raw Responses');
+  const cat=[['Title','Type','Platform','Audience','Pillars','Status']];
+  TRAINING_CATALOG.forEach(c=>cat.push([c.title,c.type,c.platform,c.audience.join(';'),c.pillars.join(';'),c.status]));
+  XLSX.utils.book_append_sheet(wb,sheet(cat),'Training Catalogue');
+  dlWB(wb,'GTM_Dashboard_Export.xlsx');
+  showToast('5-sheet Excel exported!','success');
+}
+
+function renderExport(){
+  el('tab-export').innerHTML=
+    '<div class="card">'
+    +'<div class="card-title">📤 Export Full Report</div>'
+    +'<p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Download a 5-sheet Excel workbook with all dashboard data.</p>'
+    +'<div class="export-grid">'
+    +'<div class="export-card"><h4>Gap Summary</h4><p>Pillar scores, status, and recommendations per training</p></div>'
+    +'<div class="export-card"><h4>Trainee Scores</h4><p>All trainee pre/post scores and deltas</p></div>'
+    +'<div class="export-card"><h4>Question Analysis</h4><p>Item-level scores, difficulty, and competency mapping</p></div>'
+    +'<div class="export-card"><h4>Raw Responses</h4><p>All trainee scores across sessions</p></div>'
+    +'<div class="export-card"><h4>Training Catalogue</h4><p>Full catalogue with pillars, platform, and audience</p></div>'
+    +'</div>'
+    +'<div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">'
+    +'<button class="btn btn-teal" onclick="exportAll()">⬇ Download Full Excel Report</button>'
+    +'<button class="btn btn-navy" onclick="saveHTML()">💾 Download Updated Dashboard</button>'
+    +'</div></div>'
+    +'<div class="card">'
+    +'<div class="card-title">⚡ Individual Exports</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+    +'<button class="btn btn-ghost btn-sm" onclick="exportGap()">Gap Analysis</button>'
+    +'<button class="btn btn-ghost btn-sm" onclick="exportTrainees()">Trainee Scores</button>'
+    +'<button class="btn btn-ghost btn-sm" onclick="exportQuestions()">Question Breakdown</button>'
+    +'<button class="btn btn-ghost btn-sm" onclick="exportCatalogue()">Training Catalogue</button>'
+    +'<button class="btn btn-ghost btn-sm" onclick="exportQBank()">Question Bank</button>'
+    +'<button class="btn btn-ghost btn-sm" onclick="exportQBankSheet()">Question Sheet</button>'
+    +'<button class="btn btn-ghost btn-sm" onclick="exportTracker()">Content Tracker</button>'
+    +'</div></div>'
+    +'<div class="card">'
+    +'<div class="card-title">🌐 Going Live — Options</div>'
+    +'<div style="font-size:13px;line-height:1.8;color:var(--muted);">'
+    +'<p><strong style="color:var(--navy);">Current setup (GitHub Pages):</strong> Free, fast, great for demos. Data persists in your browser via localStorage. Share the URL and anyone can view the demo — but each person gets their own local copy.</p>'
+    +'<p style="margin-top:10px;"><strong style="color:var(--navy);">For a true live shared dashboard:</strong> Connect to a backend — Airtable API, Google Sheets, or SharePoint List. Power BI can sit on top as a read-only reporting layer. This is the next step once leadership approves.</p>'
+    +'</div></div>';
+}
+
+function saveHTML(){
+  const src=document.documentElement.outerHTML;
+  const a=document.createElement('a');
+  a.href='data:text/html;charset=utf-8,'+encodeURIComponent(src);
+  a.download='index.html';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  showToast('💾 Dashboard downloaded! Push to GitHub to publish.','success',4000);
+}
+
+// ════════════════════════════════════════════════════════════
+// UPLOAD WIZARD
+// ════════════════════════════════════════════════════════════
+let uploadState={step:1,file:null,headers:[],rows:[],format:'',details:{},mapping:{},previewTrainees:[]};
+const META_COLS=['start time','completion time','email','id','last modified','respondent'];
+// MS Forms junk prefixes to SKIP
+const MSFORMS_SKIP=/^(points\s*[\-\u2014]|feedback\s*[\-\u2014])/i;
+
+function renderUpload(){
+  const s=uploadState;
+  const steps=['Select File','Detect Format','Map Columns','Preview','Complete'];
+  const stepsHtml=steps.map((l,i)=>'<div class="wizard-step'+(i+1<s.step?' done':i+1===s.step?' active':'')+'">'+(i+1<s.step?'✅ ':''+(i+1)+'. ')+l+'</div>').join('');
+  let body='';
+  if(s.step===1){
+    body='<div class="upload-zone" id="up-zone" ondragover="event.preventDefault();this.classList.add(\'dragover\')" ondragleave="this.classList.remove(\'dragover\')" ondrop="handleDrop(event)">'
+      +'<div style="font-size:48px;margin-bottom:12px;">📄</div>'
+      +'<p style="font-size:16px;font-weight:700;margin-bottom:6px;color:var(--navy);">Drop your CSV here or click to browse</p>'
+      +'<p style="color:var(--muted);margin-bottom:16px;">Supports MS Forms, Zoom Poll, or generic CSV</p>'
+      +'<input type="file" id="up-file-inp" accept=".csv" style="display:none;" onchange="handleFileSelect(this)">'
+      +'<button class="btn btn-teal" onclick="el(\'up-file-inp\').click()">📂 Browse Files</button>'
+      +'</div>';
+  } else if(s.step===2){
+    const qCols=s.headers.filter(h=>!META_COLS.some(m=>h.toLowerCase().includes(m))&&!MSFORMS_SKIP.test(h));
+    const detectedMsg=s.format==='MS Forms'
+      ?'<div style="background:#eafaf1;border:1px solid var(--green);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;"><strong style="color:var(--green);">✅ MS Forms detected</strong> — Points and Feedback columns will be filtered automatically.<br><span style="font-size:11px;color:var(--muted);">'+qCols.length+' real question columns detected.</span></div>'
+      :'<p style="font-size:13px;margin-bottom:14px;color:var(--muted);">Format: <strong>'+s.format+'</strong> — '+s.headers.length+' columns, '+s.rows.length+' rows.</p>';
+    body=detectedMsg
+      +'<div class="form-grid">'
+      +'<div class="form-field full"><label>Training Name</label><input id="up-name" placeholder="e.g. Channel 101 — Bootcamp 3"/></div>'
+      +'<div class="form-field"><label>Date</label><input type="date" id="up-date" value="'+new Date().toISOString().slice(0,10)+'"/></div>'
+      +'<div class="form-field"><label>Type</label><select id="up-type"><option>Bootcamp</option><option>Pre-Training Assessment</option><option>Post-Training Assessment</option><option>E-Learning</option><option>Workshop</option><option>Assessment</option></select></div>'
+      +'<div class="form-field"><label>Survey</label><select id="up-survey"><option value="pre">Pre-Training</option><option value="post">Post-Training</option></select></div>'
+      +'<div class="form-field"><label>Target Size</label><input type="number" id="up-target" value="60"/></div>'
+      +'<div class="form-field"><label>Audience (comma-separated)</label><input id="up-audience" value="AM,NCA"/></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:10px;margin-top:16px;">'
+      +'<button class="btn btn-ghost" onclick="initUpload()">← Back</button>'
+      +'<button class="btn btn-teal" onclick="wizardStep2Next()">Next →</button>'
+      +'</div>';
+  } else if(s.step===3){
+    const hdrs=s.headers;
+    const metaH=hdrs.filter(h=>META_COLS.some(m=>h.toLowerCase().includes(m)));
+    const autoName=hdrs.find(h=>h.toLowerCase()==='name')||hdrs.find(h=>h.toLowerCase().includes('name'))||hdrs[0]||'';
+    const autoScore=hdrs.find(h=>/total.?point/i.test(h))||hdrs.find(h=>/^score$/i.test(h))||'';
+    const nameDropCols=metaH.length?metaH:hdrs;
+    const nOpts=nameDropCols.map(h=>'<option value="'+escH(h)+'"'+(h===autoName?' selected':'')+'>'+escH(h)+'</option>').join('');
+    const sOpts='<option value="">— skip (no scoring) —</option>'+hdrs.map(h=>'<option value="'+escH(h)+'"'+(h===autoScore?' selected':'')+'>'+escH(h)+'</option>').join('');
+    // Show real question cols (skip Points/Feedback)
+    const qCols=hdrs.filter(h=>!META_COLS.some(m=>h.toLowerCase().includes(m))&&!MSFORMS_SKIP.test(h));
+    const qPreview=qCols.length?'<div style="margin-top:12px;"><div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px;">Question columns ('+qCols.length+'):</div>'
+      +'<div style="max-height:100px;overflow-y:auto;background:#f8f9fe;border-radius:8px;padding:8px 12px;">'
+      +qCols.map((h,i)=>'<div style="font-size:11px;color:var(--muted);padding:2px 0;">'+(i+1)+'. '+(h.length>70?h.slice(0,70)+'…':h)+'</div>').join('')
+      +'</div></div>':'';
+    body='<div class="form-grid">'
+      +'<div class="form-field"><label>Trainee Name Column</label><select id="map-name">'+nOpts+'</select></div>'
+      +'<div class="form-field"><label>Score Column (Total Points)</label><select id="map-score">'+sOpts+'</select></div>'
+      +'</div>'+qPreview
+      +'<div style="display:flex;gap:10px;margin-top:16px;">'
+      +'<button class="btn btn-ghost" onclick="setStep(2)">← Back</button>'
+      +'<button class="btn btn-teal" onclick="wizardStep3Next()">Preview →</button>'
+      +'</div>';
+  } else if(s.step===4){
+    const prev=s.previewTrainees.slice(0,10);
+    const rows=prev.map(tr=>'<tr><td>'+escH(tr.name)+'</td><td><span class="badge badge-navy">'+tr.role+'</span></td><td>'+scoreBar(tr.pre)+'</td></tr>').join('');
+    body='<p style="font-size:13px;margin-bottom:12px;"><strong>'+escH(s.details.name)+'</strong> &bull; '+s.previewTrainees.length+' trainees &bull; '+s.details.survey+' survey</p>'
+      +'<div class="tbl-wrap" style="max-height:280px;overflow-y:auto;"><table><thead><tr><th>Name</th><th>Role</th><th>Score</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+      +(s.previewTrainees.length>10?'<p style="font-size:12px;color:var(--muted);margin-top:6px;">…and '+(s.previewTrainees.length-10)+' more</p>':'')
+      +'<div style="display:flex;gap:10px;margin-top:16px;">'
+      +'<button class="btn btn-ghost" onclick="setStep(3)">← Back</button>'
+      +'<button class="btn btn-teal" onclick="confirmUpload()">✓ Confirm Upload</button>'
+      +'</div>';
+  } else if(s.step===5){
+    body='<div style="text-align:center;padding:40px;">'
+      +'<div style="font-size:64px;margin-bottom:16px;">✅</div>'
+      +'<div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px;">Upload Complete!</div>'
+      +'<p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Data saved to local storage automatically.</p>'
+      +'<div style="display:flex;gap:12px;justify-content:center;">'
+      +'<button class="btn btn-teal" onclick="switchTab(\'gap\')">View Gap Analysis</button>'
+      +'<button class="btn btn-navy" onclick="initUpload()">Upload Another</button>'
+      +'</div></div>';
+  }
+  el('tab-upload').innerHTML=
+    '<div class="card"><div class="card-title">⬆ Upload Training Data</div>'
+    +'<div class="wizard-steps">'+stepsHtml+'</div>'
+    +'<div id="wizard-content">'+body+'</div>'
+    +'</div>';
+}
+
+function initUpload(){
+  uploadState={step:1,file:null,headers:[],rows:[],format:'',details:{},mapping:{},previewTrainees:[]};
+  renderUpload();
+}
+function setStep(n){uploadState.step=n;renderUpload();}
+
+window.handleDrop=function(e){
+  e.preventDefault();
+  el('up-zone').classList.remove('dragover');
+  if(e.dataTransfer.files[0])processFile(e.dataTransfer.files[0]);
+};
+window.handleFileSelect=function(inp){if(inp.files[0])processFile(inp.files[0]);};
+
+function processFile(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const lines=e.target.result.split('\n').filter(l=>l.trim());
+    if(!lines.length){showToast('Empty file','error');return;}
+    // Robust CSV parse (handles quoted commas)
+    function parseCSVLine(line){
+      const res=[];let cur='';let inQ=false;
+      for(let i=0;i<line.length;i++){
+        if(line[i]==='"'){inQ=!inQ;}
+        else if(line[i]===','&&!inQ){res.push(cur.trim());cur='';}
+        else cur+=line[i];
+      }
+      res.push(cur.trim());
+      return res.map(s=>s.replace(/^"|"$/g,'').trim());
+    }
+    const headers=parseCSVLine(lines[0]);
+    const rows=lines.slice(1).map(l=>parseCSVLine(l));
+    let format='Generic';
+    if(headers.some(h=>/total.?points?/i.test(h)))format='MS Forms';
+    else if(headers.some(h=>/user.?name/i.test(h))&&headers.some(h=>/poll/i.test(h)))format='Zoom Poll';
+    uploadState.file=file;uploadState.headers=headers;uploadState.rows=rows;uploadState.format=format;
+    setStep(2);
+  };
+  reader.readAsText(file);
+}
+
+function wizardStep2Next(){
+  const name=el('up-name').value.trim();
+  if(!name){showToast('Please enter a training name','error');return;}
+  uploadState.details={
+    name,date:el('up-date').value,type:el('up-type').value,
+    survey:el('up-survey').value,target:parseInt(el('up-target').value)||60,
+    audience:el('up-audience').value.split(',').map(s=>s.trim()).filter(Boolean)
+  };
+  setStep(3);
+}
+
+function wizardStep3Next(){
+  const nameCol=el('map-name').value;
+  const scoreCol=el('map-score').value;
+  uploadState.mapping={name:nameCol,score:scoreCol};
+  const headers=uploadState.headers;
+  const nameIdx=headers.indexOf(nameCol);
+  const scoreIdx=scoreCol?headers.indexOf(scoreCol):-1;
+  const survey=uploadState.details.survey;
+  const trainees=uploadState.rows
+    .filter(r=>r[nameIdx]&&r[nameIdx].trim())
+    .map(r=>{
+      const score=scoreIdx>=0?parseScore(r[scoreIdx]):null;
+      return {name:r[nameIdx].trim(),role:'AM',
+        pre:survey==='pre'?score:null,post:survey==='post'?score:null,
+        session:survey,competencyScores:{pre:{},post:{}}};
+    });
+  if(!trainees.length){showToast('No trainees found — check Name Column selection','error');return;}
+  uploadState.previewTrainees=trainees;
+  setStep(4);
+}
+
+function confirmUpload(){
+  const d=uploadState.details;
+  const survey=d.survey;
+  const trainees=uploadState.previewTrainees;
+  const headers=uploadState.headers;
+  const rows=uploadState.rows;
+  const nameIdx=headers.indexOf(uploadState.mapping.name);
+
+  // Build questions — skip Points– and Feedback– columns
+  const qCols=headers.filter(h=>!META_COLS.some(m=>h.toLowerCase().includes(m))&&!MSFORMS_SKIP.test(h));
+  const pointsCols={};
+  headers.forEach((h,i)=>{
+    const m=h.match(/^points\s*[\-\u2014]\s*(.+)/i);
+    if(m)pointsCols[m[1].trim().toLowerCase()]=i;
+  });
+
+  const questions=qCols.map(qText=>{
+    const qIdx=headers.indexOf(qText);
+    // Try to find matching Points column
+    const ptIdx=pointsCols[qText.toLowerCase()]!==undefined?pointsCols[qText.toLowerCase()]:-1;
+    let correct=0,total=0;
+    rows.forEach(r=>{
+      if(!r[nameIdx]||!r[nameIdx].trim())return;
+      total++;
+      if(ptIdx>=0){
+        const pts=parseScore(r[ptIdx]);
+        if(pts!==null&&pts>0)correct++;
+      }
+    });
+    // Match to QBank
+    const qbMatch=QUESTION_BANK.find(q=>q.text===qText||qText.includes(q.text.slice(0,30)));
+    return {text:qText,competency:qbMatch?qbMatch.pillar:'',type:qbMatch?qbMatch.type:'Multiple Choice',
+      difficulty:qbMatch?qbMatch.difficulty:'Medium',survey,correct,total};
+  });
+
+  let training=TRAININGS.find(t=>t.name===d.name);
+  if(training){
+    if(survey==='pre'){training.respondents.pre+=trainees.length;}
+    else{training.respondents.post+=trainees.length;}
+    trainees.forEach(tr=>{
+      const found=training.trainees.find(et=>et.name===tr.name);
+      if(found){if(survey==='pre'){found.pre=tr.pre;found.session=found.session==='post'?'both':'pre';}
+      else{found.post=tr.post;found.session=found.session==='pre'?'both':'post';}}
+      else training.trainees.push(tr);
+    });
+    // Merge questions
+    questions.forEach(q=>{if(!training.questions.find(x=>x.text===q.text))training.questions.push(q);});
+  } else {
+    const gapScores={};PILLARS.forEach(p=>{gapScores[p]=null;});
+    training={id:uid(),name:d.name,type:d.type,date:d.date,targetAudience:d.audience,
+      targetSize:d.target,respondents:{pre:survey==='pre'?trainees.length:0,post:survey==='post'?trainees.length:0},
+      gapScores,preScores:{},postScores:{},recommendations:{},trainees,questions};
+    TRAININGS.push(training);
+  }
+
+  // Auto-calc gap scores from QBank
+  const qbMatches=QUESTION_BANK.filter(q=>q.training===d.name);
+  if(qbMatches.length){
+    const byPillar={};
+    qbMatches.forEach(q=>{if(!q.pillar)return;if(!byPillar[q.pillar])byPillar[q.pillar]={c:0,t:0};byPillar[q.pillar].c+=q.correct||0;byPillar[q.pillar].t+=q.total||0;});
+    Object.entries(byPillar).forEach(([p,v])=>{
+      if(v.t>0){
+        const pct=Math.round(v.c/v.t*100);
+        training.gapScores[p]=pct;
+        if(survey==='pre')training.preScores[p]=pct;
+        else training.postScores[p]=pct;
+      }
+    });
+    showToast('Gap scores auto-calculated from '+qbMatches.length+' Question Bank entries','success');
+  } else {
+    showToast('Upload complete! Add questions to Question Bank to auto-calculate gap scores.','info',4000);
+  }
+
+  autoSave();setStep(5);
+}
+
+// ════════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ════════════════════════════════════════════════════════════
+function openMod(name){el(name+'-modal-overlay').classList.add('open');}
+function closeMod(name){el(name+'-modal-overlay').classList.remove('open');}
+['catalog','qbank','tracker'].forEach(name=>{
+  const ov=el(name+'-modal-overlay');
+  if(ov)ov.addEventListener('click',e=>{if(e.target===ov)closeMod(name);});
+});
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+loadState();
+renderUpload();
+renderExport();
+
+</script></body></html>
