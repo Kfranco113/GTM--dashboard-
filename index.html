@@ -665,10 +665,10 @@ function renderInstructions(){
         +'<div style="font-weight:700;color:var(--navy);margin-bottom:8px;">🔍 Where to See Your Data</div>'
         +'<div style="font-size:13px;line-height:1.8;color:var(--muted);">'
         +'After uploading, check these tabs:<br>'
-        +'<span onclick="switchTab('gap')" style="color:var(--teal);cursor:pointer;font-weight:600;">📊 Gap Analysis</span> — pillar scores by training<br>'
-        +'<span onclick="switchTab('trainees')" style="color:var(--teal);cursor:pointer;font-weight:600;">👤 Trainee Scores</span> — individual results<br>'
-        +'<span onclick="switchTab('questions')" style="color:var(--teal);cursor:pointer;font-weight:600;">🔍 Question Breakdown</span> — per-question stats<br>'
-        +'<span onclick="switchTab('trends')" style="color:var(--teal);cursor:pointer;font-weight:600;">📈 Trends</span> — progress over time'
+        +'<span onclick="switchTab(\'gap\')" style="color:var(--teal);cursor:pointer;font-weight:600;">📊 Gap Analysis</span> — pillar scores by training<br>'
+        +'<span onclick="switchTab(\'trainees\')" style="color:var(--teal);cursor:pointer;font-weight:600;">👤 Trainee Scores</span> — individual results<br>'
+        +'<span onclick="switchTab(\'questions\')" style="color:var(--teal);cursor:pointer;font-weight:600;">🔍 Question Breakdown</span> — per-question stats<br>'
+        +'<span onclick="switchTab(\'trends\')" style="color:var(--teal);cursor:pointer;font-weight:600;">📈 Trends</span> — progress over time'
         +'</div></div></div>'
         +'<div style="background:#fff9e6;border:1px solid #f4c43044;border-radius:10px;padding:14px;">'
         +'<div style="font-weight:700;color:var(--navy);margin-bottom:10px;">📋 Upload Steps</div>'
@@ -716,7 +716,7 @@ function renderCompetency(){
     let acc=PILLARS.map((p,pi)=>{
       const qCount=QUESTION_BANK.filter(q=>q.pillar===p).length;
       const pillarLabel=editingPillar===pi
-        ?'<input id="pillar-inp-'+pi+'" value="'+escH(p)+'" style="border:1px solid var(--teal);border-radius:6px;padding:3px 8px;font-size:13px;width:300px;" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.stopPropagation();savePillarName('+pi+');}"><button class="btn btn-teal btn-xs" style="margin-left:6px;" onclick="event.stopPropagation();savePillarName('+pi+')">Save</button>'
+        ?'<input id="pillar-inp-'+pi+'" value="'+escH(p)+'" style="border:1px solid var(--teal);border-radius:6px;padding:3px 8px;font-size:13px;width:300px;" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){event.stopPropagation();savePillarName('+pi+');}"><button class="btn btn-teal btn-xs" style="margin-left:6px;" onclick="event.stopPropagation();savePillarName('+pi+')">Save</button>'
         :'\uD83D\uDCD6 '+escH(p)+'<button class="btn-icon" onclick="event.stopPropagation();startEditPillar('+pi+')" title="Edit pillar name">\u270F\uFE0F</button>';
       const levels=KSABA.map(cat=>{
         const stored=(competencyDescs[pi]&&competencyDescs[pi][activeRole]&&competencyDescs[pi][activeRole][cat]);
@@ -728,14 +728,14 @@ function renderCompetency(){
             +'<strong style="color:var(--purple);min-width:80px;">'+cat+':</strong>'
             +'<textarea id="'+safeId+'" style="flex:1;min-height:64px;font-size:13px;border:1px solid var(--teal);border-radius:6px;padding:6px;resize:vertical;">'+escH(descText)+'</textarea>'
             +'<div style="display:flex;flex-direction:column;gap:4px;">'
-            +'<button class="btn btn-teal btn-xs" onclick="saveCompDesc('+pi+',\''+cat.replace(/'/g,"\\'")+'\')">Save</button>'
+            +'<button class="btn btn-teal btn-xs" onclick="saveCompDesc('+pi+',this.dataset.cat)" data-cat="'+escH(cat)+'">Save</button>'
             +'<button class="btn btn-ghost btn-xs" onclick="cancelEditDesc()">Cancel</button>'
             +'</div></div>';
         }
         return '<div style="padding:6px 0;border-bottom:1px solid #f0f2fa;font-size:13px;display:flex;align-items:flex-start;gap:8px;">'
           +'<strong style="color:var(--purple);min-width:80px;">'+cat+':</strong>'
           +'<span style="color:var(--muted);flex:1;">'+escH(descText)+'</span>'
-          +'<button class="btn-icon" onclick="startEditDesc('+pi+',\''+cat.replace(/'/g,"\\'")+'\')" title="Edit">\u270F\uFE0F</button>'
+          +'<button class="btn-icon" onclick="startEditDesc('+pi+',this.dataset.cat)" data-cat="'+escH(cat)+'" title="Edit">&#x270F;&#xFE0F;</button>'
           +'</div>';
       }).join('');
       const accId='acc-'+pi;
